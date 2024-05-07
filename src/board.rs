@@ -1,5 +1,8 @@
 use core::panic;
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    ops::{Index, IndexMut},
+};
 
 use colored::Colorize;
 
@@ -7,6 +10,8 @@ use crate::{
     bitboard::{Bitboard, EMPTY_BB},
     square::{Color, File, Piece, PieceKind, Rank, Square},
 };
+
+type BoardPieces = [Piece; 64];
 
 pub struct Board {
     white_pawns: Bitboard,
@@ -23,7 +28,21 @@ pub struct Board {
     black_queens: Bitboard,
     black_king: Bitboard,
 
-    pieces: [Piece; 64],
+    pieces: BoardPieces,
+}
+
+impl Index<Square> for BoardPieces {
+    type Output = Piece;
+
+    fn index(&self, square: Square) -> &Self::Output {
+        &self[square.index()]
+    }
+}
+
+impl IndexMut<Square> for BoardPieces {
+    fn index_mut(&mut self, square: Square) -> &mut Self::Output {
+        &mut self[square.index()]
+    }
 }
 
 impl Default for Board {
@@ -68,13 +87,12 @@ impl Board {
     }
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
-        let piece_bb = self.get_piece_bb(piece);
-        piece_bb.set_bit(square);
-        self.pieces[square.index()] = piece;
+        self.get_piece_bb(piece).set_bit(square);
+        self.pieces[square] = piece;
     }
 
     pub fn get_piece(&self, square: Square) -> Piece {
-        self.pieces[square.index()]
+        self.pieces[square]
     }
 }
 
