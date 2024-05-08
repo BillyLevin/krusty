@@ -47,7 +47,7 @@ pub enum File {
 
 #[derive(Clone, Copy)]
 pub struct Piece {
-    pub color: Color,
+    pub color: PieceColor,
     pub kind: PieceKind,
 }
 
@@ -63,7 +63,7 @@ pub enum PieceKind {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Color {
+pub enum PieceColor {
     White,
     Black,
     None,
@@ -358,7 +358,7 @@ impl TryFrom<usize> for File {
 }
 
 impl Piece {
-    pub fn new(color: Color, kind: PieceKind) -> Self {
+    pub fn new(color: PieceColor, kind: PieceKind) -> Self {
         Self { color, kind }
     }
 }
@@ -366,7 +366,7 @@ impl Piece {
 impl Default for Piece {
     fn default() -> Self {
         Self {
-            color: Color::None,
+            color: PieceColor::None,
             kind: PieceKind::NoPiece,
         }
     }
@@ -375,18 +375,18 @@ impl Default for Piece {
 impl Display for Piece {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let unicode = match (self.color, self.kind) {
-            (Color::White, PieceKind::Pawn) => 0x2659,
-            (Color::White, PieceKind::Knight) => 0x2658,
-            (Color::White, PieceKind::Bishop) => 0x2657,
-            (Color::White, PieceKind::Rook) => 0x2656,
-            (Color::White, PieceKind::Queen) => 0x2655,
-            (Color::White, PieceKind::King) => 0x2654,
-            (Color::Black, PieceKind::Pawn) => 0x265F,
-            (Color::Black, PieceKind::Knight) => 0x265E,
-            (Color::Black, PieceKind::Bishop) => 0x265D,
-            (Color::Black, PieceKind::Rook) => 0x265C,
-            (Color::Black, PieceKind::Queen) => 0x265B,
-            (Color::Black, PieceKind::King) => 0x265A,
+            (PieceColor::White, PieceKind::Pawn) => 0x2659,
+            (PieceColor::White, PieceKind::Knight) => 0x2658,
+            (PieceColor::White, PieceKind::Bishop) => 0x2657,
+            (PieceColor::White, PieceKind::Rook) => 0x2656,
+            (PieceColor::White, PieceKind::Queen) => 0x2655,
+            (PieceColor::White, PieceKind::King) => 0x2654,
+            (PieceColor::Black, PieceKind::Pawn) => 0x265F,
+            (PieceColor::Black, PieceKind::Knight) => 0x265E,
+            (PieceColor::Black, PieceKind::Bishop) => 0x265D,
+            (PieceColor::Black, PieceKind::Rook) => 0x265C,
+            (PieceColor::Black, PieceKind::Queen) => 0x265B,
+            (PieceColor::Black, PieceKind::King) => 0x265A,
             _ => 0x0030,
         };
 
@@ -400,20 +400,20 @@ impl TryFrom<char> for Piece {
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value {
             // black pieces
-            'p' => Ok(Self::new(Color::Black, PieceKind::Pawn)),
-            'n' => Ok(Self::new(Color::Black, PieceKind::Knight)),
-            'b' => Ok(Self::new(Color::Black, PieceKind::Bishop)),
-            'r' => Ok(Self::new(Color::Black, PieceKind::Rook)),
-            'q' => Ok(Self::new(Color::Black, PieceKind::Queen)),
-            'k' => Ok(Self::new(Color::Black, PieceKind::King)),
+            'p' => Ok(Self::new(PieceColor::Black, PieceKind::Pawn)),
+            'n' => Ok(Self::new(PieceColor::Black, PieceKind::Knight)),
+            'b' => Ok(Self::new(PieceColor::Black, PieceKind::Bishop)),
+            'r' => Ok(Self::new(PieceColor::Black, PieceKind::Rook)),
+            'q' => Ok(Self::new(PieceColor::Black, PieceKind::Queen)),
+            'k' => Ok(Self::new(PieceColor::Black, PieceKind::King)),
 
             // white pieces
-            'P' => Ok(Self::new(Color::White, PieceKind::Pawn)),
-            'N' => Ok(Self::new(Color::White, PieceKind::Knight)),
-            'B' => Ok(Self::new(Color::White, PieceKind::Bishop)),
-            'R' => Ok(Self::new(Color::White, PieceKind::Rook)),
-            'Q' => Ok(Self::new(Color::White, PieceKind::Queen)),
-            'K' => Ok(Self::new(Color::White, PieceKind::King)),
+            'P' => Ok(Self::new(PieceColor::White, PieceKind::Pawn)),
+            'N' => Ok(Self::new(PieceColor::White, PieceKind::Knight)),
+            'B' => Ok(Self::new(PieceColor::White, PieceKind::Bishop)),
+            'R' => Ok(Self::new(PieceColor::White, PieceKind::Rook)),
+            'Q' => Ok(Self::new(PieceColor::White, PieceKind::Queen)),
+            'K' => Ok(Self::new(PieceColor::White, PieceKind::King)),
 
             _ => bail!("Character {} could not be converted to a piece", value),
         }

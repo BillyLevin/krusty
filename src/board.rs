@@ -8,10 +8,16 @@ use colored::Colorize;
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
-    square::{Color, File, Piece, PieceKind, Rank, Square},
+    square::{File, Piece, PieceColor, PieceKind, Rank, Square},
 };
 
 type BoardPieces = [Piece; 64];
+
+#[derive(Debug)]
+enum Side {
+    White,
+    Black,
+}
 
 pub struct Board {
     white_pawns: Bitboard,
@@ -29,6 +35,8 @@ pub struct Board {
     black_king: Bitboard,
 
     pieces: BoardPieces,
+
+    side: Side,
 }
 
 impl Index<Square> for BoardPieces {
@@ -63,6 +71,8 @@ impl Default for Board {
             black_king: EMPTY_BB,
 
             pieces: [Piece::default(); 64],
+
+            side: Side::White,
         }
     }
 }
@@ -70,18 +80,18 @@ impl Default for Board {
 impl Board {
     pub fn get_piece_bb(&mut self, piece: Piece) -> Option<&mut Bitboard> {
         match (piece.color, piece.kind) {
-            (Color::White, PieceKind::Pawn) => Some(&mut self.white_pawns),
-            (Color::White, PieceKind::Knight) => Some(&mut self.white_knights),
-            (Color::White, PieceKind::Bishop) => Some(&mut self.white_bishops),
-            (Color::White, PieceKind::Rook) => Some(&mut self.white_rooks),
-            (Color::White, PieceKind::Queen) => Some(&mut self.white_queens),
-            (Color::White, PieceKind::King) => Some(&mut self.white_king),
-            (Color::Black, PieceKind::Pawn) => Some(&mut self.black_pawns),
-            (Color::Black, PieceKind::Knight) => Some(&mut self.black_knights),
-            (Color::Black, PieceKind::Bishop) => Some(&mut self.black_bishops),
-            (Color::Black, PieceKind::Rook) => Some(&mut self.black_rooks),
-            (Color::Black, PieceKind::Queen) => Some(&mut self.black_queens),
-            (Color::Black, PieceKind::King) => Some(&mut self.black_king),
+            (PieceColor::White, PieceKind::Pawn) => Some(&mut self.white_pawns),
+            (PieceColor::White, PieceKind::Knight) => Some(&mut self.white_knights),
+            (PieceColor::White, PieceKind::Bishop) => Some(&mut self.white_bishops),
+            (PieceColor::White, PieceKind::Rook) => Some(&mut self.white_rooks),
+            (PieceColor::White, PieceKind::Queen) => Some(&mut self.white_queens),
+            (PieceColor::White, PieceKind::King) => Some(&mut self.white_king),
+            (PieceColor::Black, PieceKind::Pawn) => Some(&mut self.black_pawns),
+            (PieceColor::Black, PieceKind::Knight) => Some(&mut self.black_knights),
+            (PieceColor::Black, PieceKind::Bishop) => Some(&mut self.black_bishops),
+            (PieceColor::Black, PieceKind::Rook) => Some(&mut self.black_rooks),
+            (PieceColor::Black, PieceKind::Queen) => Some(&mut self.black_queens),
+            (PieceColor::Black, PieceKind::King) => Some(&mut self.black_king),
             _ => None,
         }
     }
@@ -149,7 +159,14 @@ impl Board {
             }
         }
 
-        // let color = fields.get(1).unwrap();
+        let side = fields.get(1).unwrap();
+
+        match side.chars().nth(0) {
+            Some('w') => self.side = Side::White,
+            Some('b') => self.side = Side::Black,
+            _ => bail!("FEN has invalid side notation. Expected `w` or `b`",),
+        }
+
         // let castling_rights = fields.get(2).unwrap();
         // let en_passant_square = fields.get(3).unwrap();
         // let halfmove_clock = fields.get(4).unwrap();
@@ -181,6 +198,11 @@ fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Resu
     for file in File::EVERY {
         write!(f, "  {}", file.to_string().cyan())?;
     }
+
+    writeln!(f)?;
+    writeln!(f)?;
+
+    writeln!(f, "Side to play: {:?}", board.side)?;
 
     Ok(())
 }
