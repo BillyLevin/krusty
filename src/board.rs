@@ -1,9 +1,9 @@
-use core::panic;
 use std::{
     fmt::{Debug, Display},
     ops::{Index, IndexMut},
 };
 
+use anyhow::{bail, Context};
 use colored::Colorize;
 
 use crate::{
@@ -68,31 +68,94 @@ impl Default for Board {
 }
 
 impl Board {
-    pub fn get_piece_bb(&mut self, piece: Piece) -> &mut Bitboard {
+    pub fn get_piece_bb(&mut self, piece: Piece) -> Option<&mut Bitboard> {
         match (piece.color, piece.kind) {
-            (Color::White, PieceKind::Pawn) => &mut self.white_pawns,
-            (Color::White, PieceKind::Knight) => &mut self.white_knights,
-            (Color::White, PieceKind::Bishop) => &mut self.white_bishops,
-            (Color::White, PieceKind::Rook) => &mut self.white_rooks,
-            (Color::White, PieceKind::Queen) => &mut self.white_queens,
-            (Color::White, PieceKind::King) => &mut self.white_king,
-            (Color::Black, PieceKind::Pawn) => &mut self.black_pawns,
-            (Color::Black, PieceKind::Knight) => &mut self.black_knights,
-            (Color::Black, PieceKind::Bishop) => &mut self.black_bishops,
-            (Color::Black, PieceKind::Rook) => &mut self.black_rooks,
-            (Color::Black, PieceKind::Queen) => &mut self.black_queens,
-            (Color::Black, PieceKind::King) => &mut self.black_king,
-            _ => panic!("tried to retrieve bitboard for empty piece"),
+            (Color::White, PieceKind::Pawn) => Some(&mut self.white_pawns),
+            (Color::White, PieceKind::Knight) => Some(&mut self.white_knights),
+            (Color::White, PieceKind::Bishop) => Some(&mut self.white_bishops),
+            (Color::White, PieceKind::Rook) => Some(&mut self.white_rooks),
+            (Color::White, PieceKind::Queen) => Some(&mut self.white_queens),
+            (Color::White, PieceKind::King) => Some(&mut self.white_king),
+            (Color::Black, PieceKind::Pawn) => Some(&mut self.black_pawns),
+            (Color::Black, PieceKind::Knight) => Some(&mut self.black_knights),
+            (Color::Black, PieceKind::Bishop) => Some(&mut self.black_bishops),
+            (Color::Black, PieceKind::Rook) => Some(&mut self.black_rooks),
+            (Color::Black, PieceKind::Queen) => Some(&mut self.black_queens),
+            (Color::Black, PieceKind::King) => Some(&mut self.black_king),
+            _ => None,
         }
     }
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) {
-        self.get_piece_bb(piece).set_bit(square);
+        if let Some(bitboard) = self.get_piece_bb(piece) {
+            bitboard.set_bit(square);
+        }
+
         self.pieces[square] = piece;
     }
 
     pub fn get_piece(&self, square: Square) -> Piece {
         self.pieces[square]
+    }
+
+    pub fn parse_fen(&mut self, fen: &str) -> anyhow::Result<()> {
+        let fields: Vec<&str> = fen.split(' ').collect();
+
+        if fields.len() != 6 {
+            bail!(
+                "FEN has invalid number of fields. Expected 6 but got {}",
+                fields.len()
+            );
+        }
+
+        let piece_placement = fields.first().unwrap();
+
+        // we reverse because the FEN starts at the 8th rank. it's a bit easier to understand if we
+        // start with the 1st rank
+        let ranks: Vec<(_, _)> = piece_placement.split('/').rev().enumerate().collect();
+
+        if ranks.len() != 8 {
+            bail!(
+                "FEN has invalid number of ranks. Expected 8 but got {}",
+                ranks.len()
+            );
+        }
+
+        for (rank_index, rank_fen) in ranks {
+            let rank: Rank = rank_index.try_into()?;
+            let mut file_index = 0;
+
+            for ch in rank_fen.chars() {
+                match ch {
+                    'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' => {
+                        let piece: Piece = ch.try_into()?;
+                        let square = Square::new(rank, file_index.try_into()?);
+                        self.add_piece(piece, square);
+                        file_index += 1;
+                    }
+
+                    '1'..='8' => {
+                        let empty_count = ch.to_digit(10).context("Can't convert to digit")?;
+
+                        for _ in 1..=empty_count {
+                            let piece = Piece::default();
+                            let square = Square::new(rank, file_index.try_into()?);
+                            self.add_piece(piece, square);
+                            file_index += 1;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        // let color = fields.get(1).unwrap();
+        // let castling_rights = fields.get(2).unwrap();
+        // let en_passant_square = fields.get(3).unwrap();
+        // let halfmove_clock = fields.get(4).unwrap();
+        // let move_count = fields.get(5).unwrap();
+
+        Ok(())
     }
 }
 

@@ -4,6 +4,8 @@ use std::{
     ops::{Add, Mul},
 };
 
+use anyhow::bail;
+
 use crate::bitboard::Bitboard;
 
 #[rustfmt::skip]
@@ -309,6 +311,25 @@ impl Rank {
     ];
 }
 
+impl TryFrom<usize> for Rank {
+    type Error = anyhow::Error;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::First),
+            1 => Ok(Self::Second),
+            2 => Ok(Self::Third),
+            3 => Ok(Self::Fourth),
+            4 => Ok(Self::Fifth),
+            5 => Ok(Self::Sixth),
+            6 => Ok(Self::Seventh),
+            7 => Ok(Self::Eighth),
+
+            _ => bail!("Invalid rank. Should be between 0 and 7 but got {}", value),
+        }
+    }
+}
+
 impl Add<u8> for Rank {
     type Output = u8;
 
@@ -369,6 +390,25 @@ impl Add<File> for u8 {
     }
 }
 
+impl TryFrom<usize> for File {
+    type Error = anyhow::Error;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::A),
+            1 => Ok(Self::B),
+            2 => Ok(Self::C),
+            3 => Ok(Self::D),
+            4 => Ok(Self::E),
+            5 => Ok(Self::F),
+            6 => Ok(Self::G),
+            7 => Ok(Self::H),
+
+            _ => bail!("Invalid file. Should be between 0 and 7 but got {}", value),
+        }
+    }
+}
+
 impl Piece {
     pub fn new(color: Color, kind: PieceKind) -> Self {
         Self { color, kind }
@@ -403,5 +443,31 @@ impl Display for Piece {
         };
 
         write!(f, "{}", char::from_u32(unicode).unwrap_or('?'))
+    }
+}
+
+impl TryFrom<char> for Piece {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            // black pieces
+            'p' => Ok(Self::new(Color::Black, PieceKind::Pawn)),
+            'n' => Ok(Self::new(Color::Black, PieceKind::Knight)),
+            'b' => Ok(Self::new(Color::Black, PieceKind::Bishop)),
+            'r' => Ok(Self::new(Color::Black, PieceKind::Rook)),
+            'q' => Ok(Self::new(Color::Black, PieceKind::Queen)),
+            'k' => Ok(Self::new(Color::Black, PieceKind::King)),
+
+            // white pieces
+            'P' => Ok(Self::new(Color::White, PieceKind::Pawn)),
+            'N' => Ok(Self::new(Color::White, PieceKind::Knight)),
+            'B' => Ok(Self::new(Color::White, PieceKind::Bishop)),
+            'R' => Ok(Self::new(Color::White, PieceKind::Rook)),
+            'Q' => Ok(Self::new(Color::White, PieceKind::Queen)),
+            'K' => Ok(Self::new(Color::White, PieceKind::King)),
+
+            _ => bail!("Character {} could not be converted to a piece", value),
+        }
     }
 }
