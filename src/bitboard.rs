@@ -5,7 +5,7 @@ use std::{
     ops::{BitOr, BitOrAssign},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Bitboard(pub u64);
 
 pub const EMPTY_BB: Bitboard = Bitboard(0);

@@ -69,73 +69,21 @@ pub enum Color {
     None,
 }
 
+const fn init_square_bitboards() -> [Bitboard; 64] {
+    let mut bitboards: [Bitboard; 64] = [Bitboard(0u64); 64];
+
+    let mut square = 0;
+
+    while square < 64 {
+        bitboards[square] = Bitboard(1u64 << square);
+        square += 1;
+    }
+
+    bitboards
+}
+
 impl Square {
-    const SQUARE_BB: [Bitboard; 64] = [
-        Bitboard(1u64 << 0),
-        Bitboard(1u64 << 1),
-        Bitboard(1u64 << 2),
-        Bitboard(1u64 << 3),
-        Bitboard(1u64 << 4),
-        Bitboard(1u64 << 5),
-        Bitboard(1u64 << 6),
-        Bitboard(1u64 << 7),
-        Bitboard(1u64 << 8),
-        Bitboard(1u64 << 9),
-        Bitboard(1u64 << 10),
-        Bitboard(1u64 << 11),
-        Bitboard(1u64 << 12),
-        Bitboard(1u64 << 13),
-        Bitboard(1u64 << 14),
-        Bitboard(1u64 << 15),
-        Bitboard(1u64 << 16),
-        Bitboard(1u64 << 17),
-        Bitboard(1u64 << 18),
-        Bitboard(1u64 << 19),
-        Bitboard(1u64 << 20),
-        Bitboard(1u64 << 21),
-        Bitboard(1u64 << 22),
-        Bitboard(1u64 << 23),
-        Bitboard(1u64 << 24),
-        Bitboard(1u64 << 25),
-        Bitboard(1u64 << 26),
-        Bitboard(1u64 << 27),
-        Bitboard(1u64 << 28),
-        Bitboard(1u64 << 29),
-        Bitboard(1u64 << 30),
-        Bitboard(1u64 << 31),
-        Bitboard(1u64 << 32),
-        Bitboard(1u64 << 33),
-        Bitboard(1u64 << 34),
-        Bitboard(1u64 << 35),
-        Bitboard(1u64 << 36),
-        Bitboard(1u64 << 37),
-        Bitboard(1u64 << 38),
-        Bitboard(1u64 << 39),
-        Bitboard(1u64 << 40),
-        Bitboard(1u64 << 41),
-        Bitboard(1u64 << 42),
-        Bitboard(1u64 << 43),
-        Bitboard(1u64 << 44),
-        Bitboard(1u64 << 45),
-        Bitboard(1u64 << 46),
-        Bitboard(1u64 << 47),
-        Bitboard(1u64 << 48),
-        Bitboard(1u64 << 49),
-        Bitboard(1u64 << 50),
-        Bitboard(1u64 << 51),
-        Bitboard(1u64 << 52),
-        Bitboard(1u64 << 53),
-        Bitboard(1u64 << 54),
-        Bitboard(1u64 << 55),
-        Bitboard(1u64 << 56),
-        Bitboard(1u64 << 57),
-        Bitboard(1u64 << 58),
-        Bitboard(1u64 << 59),
-        Bitboard(1u64 << 60),
-        Bitboard(1u64 << 61),
-        Bitboard(1u64 << 62),
-        Bitboard(1u64 << 63),
-    ];
+    const SQUARE_BB: [Bitboard; 64] = init_square_bitboards();
 
     pub fn new(rank: Rank, file: File) -> Self {
         let index = (rank * 8) + file;
