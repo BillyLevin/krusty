@@ -220,6 +220,8 @@ impl Board {
         };
 
         self.en_passant_square = en_passant_square;
+
+        // TODO: more stuff
         // let halfmove_clock = fields.get(4).unwrap();
         // let move_count = fields.get(5).unwrap();
 
