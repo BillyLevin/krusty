@@ -63,6 +63,8 @@ pub struct Board {
     side: Side,
 
     castling_rights: CastlingRights,
+
+    en_passant_square: Square,
 }
 
 impl Index<Square> for BoardPieces {
@@ -99,6 +101,8 @@ impl Default for Board {
             pieces: [Piece::default(); 64],
             side: Side::White,
             castling_rights: 0,
+
+            en_passant_square: Square::None,
         }
     }
 }
@@ -205,7 +209,17 @@ impl Board {
             self.castling_rights |= castling_kind as u8;
         }
 
-        // let en_passant_square = fields.get(3).unwrap();
+        let en_passant = fields.get(3).unwrap().chars();
+
+        let ep_file = en_passant.clone().nth(0).unwrap_or('-');
+        let ep_rank = en_passant.clone().nth(1).unwrap_or('-');
+
+        let en_passant_square = match (Rank::try_from(ep_rank), File::try_from(ep_file)) {
+            (Ok(rank), Ok(file)) => Square::new(rank, file),
+            _ => Square::None,
+        };
+
+        self.en_passant_square = en_passant_square;
         // let halfmove_clock = fields.get(4).unwrap();
         // let move_count = fields.get(5).unwrap();
 
@@ -284,6 +298,8 @@ fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Resu
             "no"
         }
     )?;
+
+    writeln!(f, "En passant square: {:?}", board.en_passant_square)?;
 
     Ok(())
 }

@@ -4,12 +4,12 @@ use std::{
     ops::{Add, Mul},
 };
 
-use anyhow::bail;
+use anyhow::{bail, Context};
 
 use crate::bitboard::{Bitboard, EMPTY_BB};
 
 #[rustfmt::skip]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -294,6 +294,19 @@ impl Mul<u8> for Rank {
     }
 }
 
+impl TryFrom<char> for Rank {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        let digit: usize = value
+            .to_digit(10)
+            .context("Rank should be a digit")?
+            .try_into()?;
+
+        (digit - 1).try_into()
+    }
+}
+
 impl File {
     pub const EVERY: [Self; 8] = [
         Self::A,
@@ -353,6 +366,24 @@ impl TryFrom<usize> for File {
             7 => Ok(Self::H),
 
             _ => bail!("Invalid file. Should be between 0 and 7 but got {}", value),
+        }
+    }
+}
+
+impl TryFrom<char> for File {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'a' => Ok(Self::A),
+            'b' => Ok(Self::B),
+            'c' => Ok(Self::C),
+            'd' => Ok(Self::D),
+            'e' => Ok(Self::E),
+            'f' => Ok(Self::F),
+            'g' => Ok(Self::G),
+            'h' => Ok(Self::H),
+            _ => bail!("Invalid file. Should be a lowercase letter between a and h"),
         }
     }
 }
