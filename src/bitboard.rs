@@ -8,7 +8,7 @@ use std::{
 #[derive(Clone, Copy, Default)]
 pub struct Bitboard(pub u64);
 
-pub const EMPTY_BB: Bitboard = Bitboard(0);
+pub const EMPTY_BB: Bitboard = Bitboard(0u64);
 
 impl Bitboard {
     pub fn set_bit(&mut self, square: Square) {

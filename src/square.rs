@@ -6,7 +6,7 @@ use std::{
 
 use anyhow::bail;
 
-use crate::bitboard::Bitboard;
+use crate::bitboard::{Bitboard, EMPTY_BB};
 
 #[rustfmt::skip]
 #[derive(Clone, Copy)]
@@ -70,7 +70,7 @@ pub enum Color {
 }
 
 const fn init_square_bitboards() -> [Bitboard; 64] {
-    let mut bitboards: [Bitboard; 64] = [Bitboard(0u64); 64];
+    let mut bitboards: [Bitboard; 64] = [EMPTY_BB; 64];
 
     let mut square = 0;
 
