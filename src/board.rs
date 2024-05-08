@@ -14,9 +14,33 @@ use crate::{
 type BoardPieces = [Piece; 64];
 
 #[derive(Debug)]
-enum Side {
+pub enum Side {
     White,
     Black,
+}
+
+#[repr(u8)]
+pub enum CastlingKind {
+    WhiteKing = 0b0001,
+    WhiteQueen = 0b0010,
+    BlackKing = 0b0100,
+    BlackQueen = 0b1000,
+}
+
+type CastlingRights = u8;
+
+impl TryFrom<char> for CastlingKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'K' => Ok(Self::WhiteKing),
+            'Q' => Ok(Self::WhiteQueen),
+            'k' => Ok(Self::BlackKing),
+            'q' => Ok(Self::BlackQueen),
+            _ => bail!("Invalid castling rights character: {}", value),
+        }
+    }
 }
 
 pub struct Board {
@@ -37,6 +61,8 @@ pub struct Board {
     pieces: BoardPieces,
 
     side: Side,
+
+    castling_rights: CastlingRights,
 }
 
 impl Index<Square> for BoardPieces {
@@ -71,8 +97,8 @@ impl Default for Board {
             black_king: EMPTY_BB,
 
             pieces: [Piece::default(); 64],
-
             side: Side::White,
+            castling_rights: 0,
         }
     }
 }
@@ -154,7 +180,8 @@ impl Board {
                             file_index += 1;
                         }
                     }
-                    _ => {}
+
+                    _ => bail!("FEN has invalid character in piece placement data: {}", ch),
                 }
             }
         }
@@ -167,12 +194,26 @@ impl Board {
             _ => bail!("FEN has invalid side notation. Expected `w` or `b`",),
         }
 
-        // let castling_rights = fields.get(2).unwrap();
+        let castling_rights = fields.get(2).unwrap();
+
+        for ch in castling_rights.chars() {
+            if ch == '-' {
+                continue;
+            }
+
+            let castling_kind: CastlingKind = ch.try_into()?;
+            self.castling_rights |= castling_kind as u8;
+        }
+
         // let en_passant_square = fields.get(3).unwrap();
         // let halfmove_clock = fields.get(4).unwrap();
         // let move_count = fields.get(5).unwrap();
 
         Ok(())
+    }
+
+    pub fn can_castle(&self, castling_kind: CastlingKind) -> bool {
+        self.castling_rights & (castling_kind as u8) != 0
     }
 }
 
@@ -203,6 +244,46 @@ fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Resu
     writeln!(f)?;
 
     writeln!(f, "Side to play: {:?}", board.side)?;
+
+    writeln!(
+        f,
+        "White king castle: {}",
+        if board.can_castle(CastlingKind::WhiteKing) {
+            "yes"
+        } else {
+            "no"
+        }
+    )?;
+
+    writeln!(
+        f,
+        "White queen castle: {}",
+        if board.can_castle(CastlingKind::WhiteQueen) {
+            "yes"
+        } else {
+            "no"
+        }
+    )?;
+
+    writeln!(
+        f,
+        "Black king castle: {}",
+        if board.can_castle(CastlingKind::BlackKing) {
+            "yes"
+        } else {
+            "no"
+        }
+    )?;
+
+    writeln!(
+        f,
+        "Black queen castle: {}",
+        if board.can_castle(CastlingKind::BlackQueen) {
+            "yes"
+        } else {
+            "no"
+        }
+    )?;
 
     Ok(())
 }
