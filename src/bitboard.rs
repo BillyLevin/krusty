@@ -15,6 +15,10 @@ impl Bitboard {
         self.0 |= 1u64 << square;
     }
 
+    pub fn clear_bit(&mut self, square: Square) {
+        self.0 &= !(1u64 << square);
+    }
+
     pub fn is_occupied(&self, square: Square) -> bool {
         self.0 & (1u64 << square) > 0
     }

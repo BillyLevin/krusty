@@ -51,7 +51,7 @@ pub struct Piece {
     pub kind: PieceKind,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PieceKind {
     Pawn,
     Knight,

@@ -19,6 +19,18 @@ pub enum Side {
     Black,
 }
 
+impl TryFrom<PieceColor> for Side {
+    type Error = anyhow::Error;
+
+    fn try_from(value: PieceColor) -> Result<Self, Self::Error> {
+        match value {
+            PieceColor::White => Ok(Side::White),
+            PieceColor::Black => Ok(Side::Black),
+            PieceColor::None => bail!("piece has no color"),
+        }
+    }
+}
+
 #[repr(u8)]
 pub enum CastlingKind {
     WhiteKing = 0b0001,
@@ -60,6 +72,9 @@ pub struct Board {
 
     pieces: BoardPieces,
 
+    white_occupancies: Bitboard,
+    black_occupancies: Bitboard,
+
     side: Side,
 
     castling_rights: CastlingRights,
@@ -99,6 +114,10 @@ impl Default for Board {
             black_king: EMPTY_BB,
 
             pieces: [Piece::default(); 64],
+
+            white_occupancies: EMPTY_BB,
+            black_occupancies: EMPTY_BB,
+
             side: Side::White,
             castling_rights: 0,
 
@@ -108,30 +127,44 @@ impl Default for Board {
 }
 
 impl Board {
-    pub fn get_piece_bb(&mut self, piece: Piece) -> Option<&mut Bitboard> {
+    pub fn get_piece_bb(&self, piece: Piece) -> anyhow::Result<Bitboard> {
         match (piece.color, piece.kind) {
-            (PieceColor::White, PieceKind::Pawn) => Some(&mut self.white_pawns),
-            (PieceColor::White, PieceKind::Knight) => Some(&mut self.white_knights),
-            (PieceColor::White, PieceKind::Bishop) => Some(&mut self.white_bishops),
-            (PieceColor::White, PieceKind::Rook) => Some(&mut self.white_rooks),
-            (PieceColor::White, PieceKind::Queen) => Some(&mut self.white_queens),
-            (PieceColor::White, PieceKind::King) => Some(&mut self.white_king),
-            (PieceColor::Black, PieceKind::Pawn) => Some(&mut self.black_pawns),
-            (PieceColor::Black, PieceKind::Knight) => Some(&mut self.black_knights),
-            (PieceColor::Black, PieceKind::Bishop) => Some(&mut self.black_bishops),
-            (PieceColor::Black, PieceKind::Rook) => Some(&mut self.black_rooks),
-            (PieceColor::Black, PieceKind::Queen) => Some(&mut self.black_queens),
-            (PieceColor::Black, PieceKind::King) => Some(&mut self.black_king),
-            _ => None,
+            (PieceColor::White, PieceKind::Pawn) => Ok(self.white_pawns),
+            (PieceColor::White, PieceKind::Knight) => Ok(self.white_knights),
+            (PieceColor::White, PieceKind::Bishop) => Ok(self.white_bishops),
+            (PieceColor::White, PieceKind::Rook) => Ok(self.white_rooks),
+            (PieceColor::White, PieceKind::Queen) => Ok(self.white_queens),
+            (PieceColor::White, PieceKind::King) => Ok(self.white_king),
+            (PieceColor::Black, PieceKind::Pawn) => Ok(self.black_pawns),
+            (PieceColor::Black, PieceKind::Knight) => Ok(self.black_knights),
+            (PieceColor::Black, PieceKind::Bishop) => Ok(self.black_bishops),
+            (PieceColor::Black, PieceKind::Rook) => Ok(self.black_rooks),
+            (PieceColor::Black, PieceKind::Queen) => Ok(self.black_queens),
+            (PieceColor::Black, PieceKind::King) => Ok(self.black_king),
+            _ => bail!("cannot get bitboard for invalid piece"),
         }
     }
 
-    pub fn add_piece(&mut self, piece: Piece, square: Square) {
-        if let Some(bitboard) = self.get_piece_bb(piece) {
-            bitboard.set_bit(square);
-        }
-
+    pub fn add_piece(&mut self, piece: Piece, square: Square) -> anyhow::Result<()> {
+        self.get_piece_bb(piece)?.set_bit(square);
+        self.occupancy(piece.color.try_into()?).set_bit(square);
         self.pieces[square] = piece;
+
+        Ok(())
+    }
+
+    pub fn remove_piece(&mut self, square: Square) -> anyhow::Result<()> {
+        let piece = self.pieces[square];
+
+        match piece.kind {
+            PieceKind::NoPiece => bail!("cannot remove empty piece"),
+            _ => {
+                self.get_piece_bb(piece)?.set_bit(square);
+                self.occupancy(piece.color.try_into()?).clear_bit(square);
+                self.pieces[square] = Piece::default();
+                Ok(())
+            }
+        }
     }
 
     pub fn get_piece(&self, square: Square) -> Piece {
@@ -170,19 +203,17 @@ impl Board {
                     'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'P' | 'N' | 'B' | 'R' | 'Q' | 'K' => {
                         let piece: Piece = ch.try_into()?;
                         let square = Square::new(rank, file_index.try_into()?);
-                        self.add_piece(piece, square);
+                        self.add_piece(piece, square)?;
                         file_index += 1;
                     }
 
                     '1'..='8' => {
-                        let empty_count = ch.to_digit(10).context("Can't convert to digit")?;
+                        let empty_count: usize = ch
+                            .to_digit(10)
+                            .context("Can't convert to digit")?
+                            .try_into()?;
 
-                        for _ in 1..=empty_count {
-                            let piece = Piece::default();
-                            let square = Square::new(rank, file_index.try_into()?);
-                            self.add_piece(piece, square);
-                            file_index += 1;
-                        }
+                        file_index += empty_count;
                     }
 
                     _ => bail!("FEN has invalid character in piece placement data: {}", ch),
@@ -230,6 +261,13 @@ impl Board {
 
     pub fn can_castle(&self, castling_kind: CastlingKind) -> bool {
         self.castling_rights & (castling_kind as u8) != 0
+    }
+
+    fn occupancy(&self, side: Side) -> Bitboard {
+        match side {
+            Side::White => self.white_occupancies,
+            Side::Black => self.black_occupancies,
+        }
     }
 }
 
