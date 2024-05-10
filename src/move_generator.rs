@@ -208,7 +208,7 @@ const fn init_knight_attacks() -> [Bitboard; 64] {
 
         let north_north_east = (square_bb << 17) & NOT_A_FILE;
         let north_north_west = (square_bb << 15) & NOT_H_FILE;
-        let north_east_east = (square_bb << 10) & NOT_H_FILE;
+        let north_east_east = (square_bb << 10) & NOT_AB_FILE;
         let north_west_west = (square_bb << 6) & NOT_GH_FILE;
 
         let south_south_east = (square_bb >> 15) & NOT_A_FILE;
