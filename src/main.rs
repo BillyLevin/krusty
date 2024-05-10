@@ -1,4 +1,7 @@
-use krusty::{board::Board, move_generator::MoveGenerator};
+use krusty::{
+    board::Board,
+    move_generator::{MoveGenerator, MoveList},
+};
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const OPERA_GAME_FEN: &str = "1n1Rkb1r/p4ppp/4q3/4p1B1/4P3/8/PPP2PPP/2K5 b k - 1 17";
@@ -10,8 +13,9 @@ fn main() -> anyhow::Result<()> {
     println!("{}", board);
 
     let mg = MoveGenerator {};
+    let mut move_list = MoveList::default();
 
-    mg.generate_pawn_moves(&board)?;
+    mg.generate_pawn_moves(&board, &mut move_list)?;
 
     Ok(())
 }

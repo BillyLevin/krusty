@@ -56,6 +56,7 @@ impl From<u32> for MoveFlag {
 // 3 bits: move flag
 // = 17 bits to represent the move
 // the remaining 15 bits will be used for move ordering later on
+#[derive(Clone, Copy)]
 pub struct Move(u32);
 
 impl Move {
@@ -91,7 +92,33 @@ impl Move {
     }
 }
 
-pub struct MoveList;
+const MAX_MOVES: usize = 512;
+
+#[derive(Clone, Copy)]
+pub struct MoveList {
+    moves: [Move; MAX_MOVES],
+    count: usize,
+}
+
+impl MoveList {
+    pub fn new() -> Self {
+        Self {
+            moves: [Move::NULL_MOVE; 512],
+            count: 0,
+        }
+    }
+
+    pub fn push(&mut self, mv: Move) {
+        self.moves[self.count] = mv;
+        self.count += 1;
+    }
+}
+
+impl Default for MoveList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub struct MoveGenerator;
 
@@ -138,7 +165,11 @@ impl MoveGenerator {
         }
     }
 
-    pub fn generate_pawn_moves(&self, board: &Board) -> anyhow::Result<()> {
+    pub fn generate_pawn_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
         let empty = board.empty_squares();
         let pawn_pushes = Self::pawn_pushes(board.side_to_move());
         let mut pawns =
@@ -163,40 +194,40 @@ impl MoveGenerator {
 
                 match Self::is_promotion(board.side_to_move(), to_square)? {
                     true => {
-                        dbg!(Move::new(
+                        move_list.push(Move::new(
                             from_square,
                             to_square,
                             MoveKind::Promotion,
-                            MoveFlag::KnightPromotion
+                            MoveFlag::KnightPromotion,
                         ));
 
-                        dbg!(Move::new(
+                        move_list.push(Move::new(
                             from_square,
                             to_square,
                             MoveKind::Promotion,
-                            MoveFlag::BishopPromotion
+                            MoveFlag::BishopPromotion,
                         ));
 
-                        dbg!(Move::new(
+                        move_list.push(Move::new(
                             from_square,
                             to_square,
                             MoveKind::Promotion,
-                            MoveFlag::RookPromotion
+                            MoveFlag::RookPromotion,
                         ));
 
-                        dbg!(Move::new(
+                        move_list.push(Move::new(
                             from_square,
                             to_square,
                             MoveKind::Promotion,
-                            MoveFlag::QueenPromotion
+                            MoveFlag::QueenPromotion,
                         ));
                     }
                     false => {
-                        dbg!(Move::new(
+                        move_list.push(Move::new(
                             from_square,
                             to_square,
                             MoveKind::Quiet,
-                            MoveFlag::None
+                            MoveFlag::None,
                         ));
                     }
                 }
@@ -204,9 +235,13 @@ impl MoveGenerator {
 
             if double_push.value() != 0 {
                 let to_square = double_push.pop_bit();
-                let current_move =
-                    Move::new(from_square, to_square, MoveKind::Quiet, MoveFlag::None);
-                dbg!(current_move);
+
+                move_list.push(Move::new(
+                    from_square,
+                    to_square,
+                    MoveKind::Quiet,
+                    MoveFlag::None,
+                ));
             }
         }
 
