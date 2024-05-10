@@ -24,7 +24,7 @@ pub enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8, None
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Rank {
     First,
     Second,
@@ -256,6 +256,10 @@ impl Square {
     pub fn south(&self) -> Self {
         (self.index() - 8).into()
     }
+
+    pub fn rank(&self) -> anyhow::Result<Rank> {
+        Ok(self.try_into()?)
+    }
 }
 
 // TODO: use a macro for this shit
@@ -431,6 +435,87 @@ impl TryFrom<usize> for Rank {
             7 => Ok(Self::Eighth),
 
             _ => bail!("Invalid rank. Should be between 0 and 7 but got {}", value),
+        }
+    }
+}
+
+impl TryFrom<&Square> for Rank {
+    type Error = anyhow::Error;
+    fn try_from(square: &Square) -> Result<Self, Self::Error> {
+        match square {
+            Square::A1
+            | Square::B1
+            | Square::C1
+            | Square::D1
+            | Square::E1
+            | Square::F1
+            | Square::G1
+            | Square::H1 => Ok(Self::First),
+
+            Square::A2
+            | Square::B2
+            | Square::C2
+            | Square::D2
+            | Square::E2
+            | Square::F2
+            | Square::G2
+            | Square::H2 => Ok(Self::Second),
+
+            Square::A3
+            | Square::B3
+            | Square::C3
+            | Square::D3
+            | Square::E3
+            | Square::F3
+            | Square::G3
+            | Square::H3 => Ok(Self::Third),
+
+            Square::A4
+            | Square::B4
+            | Square::C4
+            | Square::D4
+            | Square::E4
+            | Square::F4
+            | Square::G4
+            | Square::H4 => Ok(Self::Fourth),
+
+            Square::A5
+            | Square::B5
+            | Square::C5
+            | Square::D5
+            | Square::E5
+            | Square::F5
+            | Square::G5
+            | Square::H5 => Ok(Self::Fifth),
+
+            Square::A6
+            | Square::B6
+            | Square::C6
+            | Square::D6
+            | Square::E6
+            | Square::F6
+            | Square::G6
+            | Square::H6 => Ok(Self::Sixth),
+
+            Square::A7
+            | Square::B7
+            | Square::C7
+            | Square::D7
+            | Square::E7
+            | Square::F7
+            | Square::G7
+            | Square::H7 => Ok(Self::Seventh),
+
+            Square::A8
+            | Square::B8
+            | Square::C8
+            | Square::D8
+            | Square::E8
+            | Square::F8
+            | Square::G8
+            | Square::H8 => Ok(Self::Eighth),
+
+            Square::None => bail!("cannot get rank of non-existent square"),
         }
     }
 }

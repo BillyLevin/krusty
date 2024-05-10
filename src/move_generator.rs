@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
     board::{Board, Side},
-    square::{Piece, PieceKind, Square},
+    square::{Piece, PieceKind, Rank, Square},
 };
 
 #[derive(Debug)]
@@ -131,7 +131,7 @@ impl MoveGenerator {
     const RANK_4_MASK: u64 = 4278190080u64;
     const RANK_5_MASK: u64 = 1095216660480u64;
 
-    fn pawn_pushes(&self, side: Side) -> [Bitboard; 64] {
+    fn pawn_pushes(side: Side) -> [Bitboard; 64] {
         match side {
             Side::White => Self::WHITE_PAWN_PUSHES,
             Side::Black => Self::BLACK_PAWN_PUSHES,
@@ -140,7 +140,7 @@ impl MoveGenerator {
 
     pub fn generate_pawn_moves(&self, board: &Board) -> anyhow::Result<()> {
         let empty = board.empty_squares();
-        let pawn_pushes = self.pawn_pushes(board.side_to_move());
+        let pawn_pushes = Self::pawn_pushes(board.side_to_move());
         let mut pawns =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Pawn))?;
 
@@ -160,9 +160,46 @@ impl MoveGenerator {
 
             if single_push.value() != 0 {
                 let to_square = single_push.pop_bit();
-                let current_move =
-                    Move::new(from_square, to_square, MoveKind::Quiet, MoveFlag::None);
-                dbg!(current_move);
+
+                match Self::is_promotion(board.side_to_move(), to_square)? {
+                    true => {
+                        dbg!(Move::new(
+                            from_square,
+                            to_square,
+                            MoveKind::Promotion,
+                            MoveFlag::KnightPromotion
+                        ));
+
+                        dbg!(Move::new(
+                            from_square,
+                            to_square,
+                            MoveKind::Promotion,
+                            MoveFlag::BishopPromotion
+                        ));
+
+                        dbg!(Move::new(
+                            from_square,
+                            to_square,
+                            MoveKind::Promotion,
+                            MoveFlag::RookPromotion
+                        ));
+
+                        dbg!(Move::new(
+                            from_square,
+                            to_square,
+                            MoveKind::Promotion,
+                            MoveFlag::QueenPromotion
+                        ));
+                    }
+                    false => {
+                        dbg!(Move::new(
+                            from_square,
+                            to_square,
+                            MoveKind::Quiet,
+                            MoveFlag::None
+                        ));
+                    }
+                }
             }
 
             if double_push.value() != 0 {
@@ -174,6 +211,13 @@ impl MoveGenerator {
         }
 
         Ok(())
+    }
+
+    fn is_promotion(side: Side, to_square: Square) -> anyhow::Result<bool> {
+        match side {
+            Side::White => Ok(to_square.rank()? == Rank::Eighth),
+            Side::Black => Ok(to_square.rank()? == Rank::First),
+        }
     }
 }
 
