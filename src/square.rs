@@ -249,16 +249,8 @@ impl Square {
         Self::SQUARE_BB[square]
     }
 
-    pub fn north(&self) -> Self {
-        (self.index() + 8).into()
-    }
-
-    pub fn south(&self) -> Self {
-        (self.index() - 8).into()
-    }
-
     pub fn rank(&self) -> anyhow::Result<Rank> {
-        Ok(self.try_into()?)
+        self.try_into()
     }
 }
 
