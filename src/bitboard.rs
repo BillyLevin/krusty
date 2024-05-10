@@ -12,15 +12,29 @@ pub const EMPTY_BB: Bitboard = Bitboard(0u64);
 
 impl Bitboard {
     pub fn set_bit(&mut self, square: Square) {
-        self.0 |= 1u64 << square;
+        self.0 |= square.bitboard().value();
     }
 
     pub fn clear_bit(&mut self, square: Square) {
-        self.0 &= !(1u64 << square);
+        self.0 &= !(square.bitboard().value());
     }
 
     pub fn is_occupied(&self, square: Square) -> bool {
-        self.0 & (1u64 << square) > 0
+        self.0 & (square.bitboard().value()) > 0
+    }
+
+    pub fn value(&self) -> u64 {
+        self.0
+    }
+
+    pub fn pop_bit(&mut self) -> Square {
+        let square: Square = self.get_lsb().trailing_zeros().into();
+        self.0 ^= square.bitboard().value();
+        square
+    }
+
+    fn get_lsb(&self) -> u64 {
+        self.value() & (!self.value() + 1)
     }
 }
 

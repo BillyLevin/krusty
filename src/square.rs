@@ -6,7 +6,10 @@ use std::{
 
 use anyhow::{bail, Context};
 
-use crate::bitboard::{Bitboard, EMPTY_BB};
+use crate::{
+    bitboard::{Bitboard, EMPTY_BB},
+    board::Side,
+};
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug)]
@@ -67,6 +70,15 @@ pub enum PieceColor {
     White,
     Black,
     None,
+}
+
+impl From<Side> for PieceColor {
+    fn from(value: Side) -> Self {
+        match value {
+            Side::White => PieceColor::White,
+            Side::Black => PieceColor::Black,
+        }
+    }
 }
 
 const fn init_square_bitboards() -> [Bitboard; 64] {
@@ -236,16 +248,17 @@ impl Square {
 
         Self::SQUARE_BB[square]
     }
-}
 
-impl std::ops::Shl<Square> for u64 {
-    type Output = u64;
+    pub fn north(&self) -> Self {
+        (self.index() + 8).into()
+    }
 
-    fn shl(self, rhs: Square) -> Self::Output {
-        self << (rhs as u8)
+    pub fn south(&self) -> Self {
+        (self.index() - 8).into()
     }
 }
 
+// TODO: use a macro for this shit
 impl From<u32> for Square {
     fn from(value: u32) -> Self {
         match value {
@@ -313,6 +326,78 @@ impl From<u32> for Square {
             x if x == (Square::F8 as u32) => Square::F8,
             x if x == (Square::G8 as u32) => Square::G8,
             x if x == (Square::H8 as u32) => Square::H8,
+            _ => panic!("out of range!"),
+        }
+    }
+}
+
+impl From<usize> for Square {
+    fn from(value: usize) -> Self {
+        match value {
+            x if x == (Square::A1 as usize) => Square::A1,
+            x if x == (Square::B1 as usize) => Square::B1,
+            x if x == (Square::C1 as usize) => Square::C1,
+            x if x == (Square::D1 as usize) => Square::D1,
+            x if x == (Square::E1 as usize) => Square::E1,
+            x if x == (Square::F1 as usize) => Square::F1,
+            x if x == (Square::G1 as usize) => Square::G1,
+            x if x == (Square::H1 as usize) => Square::H1,
+            x if x == (Square::A2 as usize) => Square::A2,
+            x if x == (Square::B2 as usize) => Square::B2,
+            x if x == (Square::C2 as usize) => Square::C2,
+            x if x == (Square::D2 as usize) => Square::D2,
+            x if x == (Square::E2 as usize) => Square::E2,
+            x if x == (Square::F2 as usize) => Square::F2,
+            x if x == (Square::G2 as usize) => Square::G2,
+            x if x == (Square::H2 as usize) => Square::H2,
+            x if x == (Square::A3 as usize) => Square::A3,
+            x if x == (Square::B3 as usize) => Square::B3,
+            x if x == (Square::C3 as usize) => Square::C3,
+            x if x == (Square::D3 as usize) => Square::D3,
+            x if x == (Square::E3 as usize) => Square::E3,
+            x if x == (Square::F3 as usize) => Square::F3,
+            x if x == (Square::G3 as usize) => Square::G3,
+            x if x == (Square::H3 as usize) => Square::H3,
+            x if x == (Square::A4 as usize) => Square::A4,
+            x if x == (Square::B4 as usize) => Square::B4,
+            x if x == (Square::C4 as usize) => Square::C4,
+            x if x == (Square::D4 as usize) => Square::D4,
+            x if x == (Square::E4 as usize) => Square::E4,
+            x if x == (Square::F4 as usize) => Square::F4,
+            x if x == (Square::G4 as usize) => Square::G4,
+            x if x == (Square::H4 as usize) => Square::H4,
+            x if x == (Square::A5 as usize) => Square::A5,
+            x if x == (Square::B5 as usize) => Square::B5,
+            x if x == (Square::C5 as usize) => Square::C5,
+            x if x == (Square::D5 as usize) => Square::D5,
+            x if x == (Square::E5 as usize) => Square::E5,
+            x if x == (Square::F5 as usize) => Square::F5,
+            x if x == (Square::G5 as usize) => Square::G5,
+            x if x == (Square::H5 as usize) => Square::H5,
+            x if x == (Square::A6 as usize) => Square::A6,
+            x if x == (Square::B6 as usize) => Square::B6,
+            x if x == (Square::C6 as usize) => Square::C6,
+            x if x == (Square::D6 as usize) => Square::D6,
+            x if x == (Square::E6 as usize) => Square::E6,
+            x if x == (Square::F6 as usize) => Square::F6,
+            x if x == (Square::G6 as usize) => Square::G6,
+            x if x == (Square::H6 as usize) => Square::H6,
+            x if x == (Square::A7 as usize) => Square::A7,
+            x if x == (Square::B7 as usize) => Square::B7,
+            x if x == (Square::C7 as usize) => Square::C7,
+            x if x == (Square::D7 as usize) => Square::D7,
+            x if x == (Square::E7 as usize) => Square::E7,
+            x if x == (Square::F7 as usize) => Square::F7,
+            x if x == (Square::G7 as usize) => Square::G7,
+            x if x == (Square::H7 as usize) => Square::H7,
+            x if x == (Square::A8 as usize) => Square::A8,
+            x if x == (Square::B8 as usize) => Square::B8,
+            x if x == (Square::C8 as usize) => Square::C8,
+            x if x == (Square::D8 as usize) => Square::D8,
+            x if x == (Square::E8 as usize) => Square::E8,
+            x if x == (Square::F8 as usize) => Square::F8,
+            x if x == (Square::G8 as usize) => Square::G8,
+            x if x == (Square::H8 as usize) => Square::H8,
             _ => panic!("out of range!"),
         }
     }

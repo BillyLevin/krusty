@@ -13,7 +13,7 @@ use crate::{
 
 type BoardPieces = [Piece; 64];
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Side {
     White,
     Black,
@@ -145,9 +145,27 @@ impl Board {
         }
     }
 
+    pub fn get_piece_bb_mut(&mut self, piece: Piece) -> anyhow::Result<&mut Bitboard> {
+        match (piece.color, piece.kind) {
+            (PieceColor::White, PieceKind::Pawn) => Ok(&mut self.white_pawns),
+            (PieceColor::White, PieceKind::Knight) => Ok(&mut self.white_knights),
+            (PieceColor::White, PieceKind::Bishop) => Ok(&mut self.white_bishops),
+            (PieceColor::White, PieceKind::Rook) => Ok(&mut self.white_rooks),
+            (PieceColor::White, PieceKind::Queen) => Ok(&mut self.white_queens),
+            (PieceColor::White, PieceKind::King) => Ok(&mut self.white_king),
+            (PieceColor::Black, PieceKind::Pawn) => Ok(&mut self.black_pawns),
+            (PieceColor::Black, PieceKind::Knight) => Ok(&mut self.black_knights),
+            (PieceColor::Black, PieceKind::Bishop) => Ok(&mut self.black_bishops),
+            (PieceColor::Black, PieceKind::Rook) => Ok(&mut self.black_rooks),
+            (PieceColor::Black, PieceKind::Queen) => Ok(&mut self.black_queens),
+            (PieceColor::Black, PieceKind::King) => Ok(&mut self.black_king),
+            _ => bail!("cannot get bitboard for invalid piece"),
+        }
+    }
+
     pub fn add_piece(&mut self, piece: Piece, square: Square) -> anyhow::Result<()> {
-        self.get_piece_bb(piece)?.set_bit(square);
-        self.occupancy(piece.color.try_into()?).set_bit(square);
+        self.get_piece_bb_mut(piece)?.set_bit(square);
+        self.occupancy_mut(piece.color.try_into()?).set_bit(square);
         self.pieces[square] = piece;
 
         Ok(())
@@ -159,8 +177,9 @@ impl Board {
         match piece.kind {
             PieceKind::NoPiece => bail!("cannot remove empty piece"),
             _ => {
-                self.get_piece_bb(piece)?.set_bit(square);
-                self.occupancy(piece.color.try_into()?).clear_bit(square);
+                self.get_piece_bb_mut(piece)?.set_bit(square);
+                self.occupancy_mut(piece.color.try_into()?)
+                    .clear_bit(square);
                 self.pieces[square] = Piece::default();
                 Ok(())
             }
@@ -263,10 +282,25 @@ impl Board {
         self.castling_rights & (castling_kind as u8) != 0
     }
 
-    fn occupancy(&self, side: Side) -> Bitboard {
+    pub fn empty_squares(&self) -> Bitboard {
+        Bitboard(!(self.occupancy(Side::White).value() | self.occupancy(Side::Black).value()))
+    }
+
+    pub fn side_to_move(&self) -> Side {
+        self.side
+    }
+
+    fn occupancy(&self, side: Side) -> &Bitboard {
         match side {
-            Side::White => self.white_occupancies,
-            Side::Black => self.black_occupancies,
+            Side::White => &self.white_occupancies,
+            Side::Black => &self.black_occupancies,
+        }
+    }
+
+    fn occupancy_mut(&mut self, side: Side) -> &mut Bitboard {
+        match side {
+            Side::White => &mut self.white_occupancies,
+            Side::Black => &mut self.black_occupancies,
         }
     }
 }

@@ -1,4 +1,10 @@
-use crate::square::Square;
+use std::fmt::Debug;
+
+use crate::{
+    bitboard::{Bitboard, EMPTY_BB},
+    board::{Board, Side},
+    square::{Piece, PieceKind, Square},
+};
 
 #[derive(Debug)]
 pub enum MoveKind {
@@ -88,3 +94,98 @@ impl Move {
 pub struct MoveList;
 
 pub struct MoveGenerator;
+
+const fn init_white_pawn_pushes() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut pawn_pushes: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        let square_bb = 1u64 << square_idx;
+        pawn_pushes[square_idx] = Bitboard(square_bb << 8);
+        square_idx += 1;
+    }
+
+    pawn_pushes
+}
+
+const fn init_black_pawn_pushes() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut pawn_pushes: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        let square_bb = 1u64 << square_idx;
+        pawn_pushes[square_idx] = Bitboard(square_bb >> 8);
+        square_idx += 1;
+    }
+
+    pawn_pushes
+}
+
+impl MoveGenerator {
+    // maps the `from` square to the `to` square when pushing a pawn
+    const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
+    const BLACK_PAWN_PUSHES: [Bitboard; 64] = init_black_pawn_pushes();
+
+    const RANK_4_MASK: u64 = 4278190080u64;
+    const RANK_5_MASK: u64 = 1095216660480u64;
+
+    fn pawn_pushes(&self, side: Side) -> [Bitboard; 64] {
+        match side {
+            Side::White => Self::WHITE_PAWN_PUSHES,
+            Side::Black => Self::BLACK_PAWN_PUSHES,
+        }
+    }
+
+    pub fn generate_pawn_moves(&self, board: &Board) -> anyhow::Result<()> {
+        let empty = board.empty_squares();
+        let pawn_pushes = self.pawn_pushes(board.side_to_move());
+        let mut pawns =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Pawn))?;
+
+        while pawns.value() != 0 {
+            let from_square = pawns.pop_bit();
+            let mut single_push =
+                Bitboard(pawn_pushes[from_square.index()].value() & empty.value());
+
+            let mut double_push = match board.side_to_move() {
+                Side::White => {
+                    Bitboard((single_push.value() << 8) & Self::RANK_4_MASK & empty.value())
+                }
+                Side::Black => {
+                    Bitboard((single_push.value() >> 8) & Self::RANK_5_MASK & empty.value())
+                }
+            };
+
+            if single_push.value() != 0 {
+                let to_square = single_push.pop_bit();
+                let current_move =
+                    Move::new(from_square, to_square, MoveKind::Quiet, MoveFlag::None);
+                dbg!(current_move);
+            }
+
+            if double_push.value() != 0 {
+                let to_square = double_push.pop_bit();
+                let current_move =
+                    Move::new(from_square, to_square, MoveKind::Quiet, MoveFlag::None);
+                dbg!(current_move);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Debug for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "from: {:?}, to: {:?}, kind: {:?}, flag: {:?}",
+            self.from_square(),
+            self.to_square(),
+            self.kind(),
+            self.flag()
+        )
+    }
+}
