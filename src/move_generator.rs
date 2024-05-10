@@ -252,7 +252,10 @@ impl MoveGenerator {
                 ));
             }
 
-            let en_passant_bb = board.en_passant_square.bitboard();
+            let en_passant_bb = match board.en_passant_square {
+                Square::None => EMPTY_BB,
+                square => square.bitboard(),
+            };
 
             let enemy_side = match board.side_to_move() {
                 Side::White => Side::Black,
@@ -348,10 +351,12 @@ impl Debug for Move {
 
 impl Debug for MoveList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+
         for i in 0..self.count {
             writeln!(f, "{:?}", self.moves[i])?;
         }
 
-        Ok(())
+        writeln!(f, "Move list size: {}", self.count)
     }
 }
