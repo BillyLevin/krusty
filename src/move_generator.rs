@@ -138,6 +138,8 @@ const fn init_white_pawn_pushes() -> [Bitboard; 64] {
 
 const NOT_A_FILE: u64 = 18374403900871474942u64;
 const NOT_H_FILE: u64 = 9187201950435737471u64;
+const NOT_AB_FILE: u64 = 18229723555195321596u64;
+const NOT_GH_FILE: u64 = 4557430888798830399u64;
 
 const fn init_black_pawn_pushes() -> [Bitboard; 64] {
     let mut square_idx: usize = 0;
@@ -191,6 +193,46 @@ const fn init_black_pawn_attacks() -> [Bitboard; 64] {
     pawn_attacks
 }
 
+const fn init_knight_attacks() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut knight_attacks: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        let square_bb = 1u64 << square_idx;
+
+        // NORTH: << 8
+        // SOUTH: >> 8
+        // EAST: << 1
+        // WEST >> 1
+
+        let north_north_east = (square_bb << 17) & NOT_A_FILE;
+        let north_north_west = (square_bb << 15) & NOT_H_FILE;
+        let north_east_east = (square_bb << 10) & NOT_H_FILE;
+        let north_west_west = (square_bb << 6) & NOT_GH_FILE;
+
+        let south_south_east = (square_bb >> 15) & NOT_A_FILE;
+        let south_south_west = (square_bb >> 17) & NOT_H_FILE;
+        let south_east_east = (square_bb >> 6) & NOT_AB_FILE;
+        let south_west_west = (square_bb >> 10) & NOT_GH_FILE;
+
+        knight_attacks[square_idx] = Bitboard(
+            north_north_east
+                | north_north_west
+                | north_east_east
+                | north_west_west
+                | south_south_east
+                | south_south_west
+                | south_east_east
+                | south_west_west,
+        );
+
+        square_idx += 1;
+    }
+
+    knight_attacks
+}
+
 impl MoveGenerator {
     // maps the `from` square to the `to` square when pushing a pawn
     const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
@@ -198,6 +240,8 @@ impl MoveGenerator {
 
     const WHITE_PAWN_ATTACKS: [Bitboard; 64] = init_white_pawn_attacks();
     const BLACK_PAWN_ATTACKS: [Bitboard; 64] = init_black_pawn_attacks();
+
+    const KNIGHT_ATTACKS: [Bitboard; 64] = init_knight_attacks();
 
     const RANK_4_MASK: u64 = 4278190080u64;
     const RANK_5_MASK: u64 = 1095216660480u64;
@@ -284,6 +328,43 @@ impl MoveGenerator {
             }
         }
 
+        Ok(())
+    }
+
+    pub fn generate_knight_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut knights =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Knight))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while knights.value() != 0 {
+            let from_square = knights.pop_bit();
+
+            let possible_attacks = Self::KNIGHT_ATTACKS[from_square.index()].value();
+
+            let mut knight_moves = Bitboard(possible_attacks & !current_side_occupancy.value());
+
+            while knight_moves.value() != 0 {
+                let to_square = knight_moves.pop_bit();
+
+                let is_capture = (to_square.bitboard().value() & enemy_occupancy.value()) != 0;
+
+                let move_kind = if is_capture {
+                    MoveKind::Capture
+                } else {
+                    MoveKind::Quiet
+                };
+
+                move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
+            }
+        }
         Ok(())
     }
 

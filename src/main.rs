@@ -16,6 +16,7 @@ fn main() -> anyhow::Result<()> {
     let mut move_list = MoveList::default();
 
     mg.generate_pawn_moves(&board, &mut move_list)?;
+    mg.generate_knight_moves(&board, &mut move_list)?;
 
     dbg!(move_list);
 
