@@ -79,7 +79,7 @@ pub struct Board {
 
     castling_rights: CastlingRights,
 
-    en_passant_square: Square,
+    pub en_passant_square: Square,
 }
 
 impl Index<Square> for BoardPieces {
@@ -290,7 +290,7 @@ impl Board {
         self.side
     }
 
-    fn occupancy(&self, side: Side) -> &Bitboard {
+    pub fn occupancy(&self, side: Side) -> &Bitboard {
         match side {
             Side::White => &self.white_occupancies,
             Side::Black => &self.black_occupancies,

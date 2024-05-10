@@ -136,6 +136,9 @@ const fn init_white_pawn_pushes() -> [Bitboard; 64] {
     pawn_pushes
 }
 
+const NOT_A_FILE: u64 = 18374403900871474942u64;
+const NOT_H_FILE: u64 = 9187201950435737471u64;
+
 const fn init_black_pawn_pushes() -> [Bitboard; 64] {
     let mut square_idx: usize = 0;
 
@@ -150,20 +153,54 @@ const fn init_black_pawn_pushes() -> [Bitboard; 64] {
     pawn_pushes
 }
 
+const fn init_white_pawn_attacks() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut pawn_attacks: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        let square_bb = 1u64 << square_idx;
+
+        let north_east = (square_bb << 9) & NOT_A_FILE;
+        let north_west = (square_bb << 7) & NOT_H_FILE;
+
+        pawn_attacks[square_idx] = Bitboard(north_west | north_east);
+
+        square_idx += 1;
+    }
+
+    pawn_attacks
+}
+
+const fn init_black_pawn_attacks() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut pawn_attacks: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        let square_bb = 1u64 << square_idx;
+
+        let south_east = (square_bb >> 7) & NOT_A_FILE;
+        let south_west = (square_bb >> 9) & NOT_H_FILE;
+
+        pawn_attacks[square_idx] = Bitboard(south_west | south_east);
+
+        square_idx += 1;
+    }
+
+    pawn_attacks
+}
+
 impl MoveGenerator {
     // maps the `from` square to the `to` square when pushing a pawn
     const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
     const BLACK_PAWN_PUSHES: [Bitboard; 64] = init_black_pawn_pushes();
 
+    const WHITE_PAWN_ATTACKS: [Bitboard; 64] = init_white_pawn_attacks();
+    const BLACK_PAWN_ATTACKS: [Bitboard; 64] = init_black_pawn_attacks();
+
     const RANK_4_MASK: u64 = 4278190080u64;
     const RANK_5_MASK: u64 = 1095216660480u64;
-
-    fn pawn_pushes(side: Side) -> [Bitboard; 64] {
-        match side {
-            Side::White => Self::WHITE_PAWN_PUSHES,
-            Side::Black => Self::BLACK_PAWN_PUSHES,
-        }
-    }
 
     pub fn generate_pawn_moves(
         &self,
@@ -192,44 +229,15 @@ impl MoveGenerator {
             if single_push.value() != 0 {
                 let to_square = single_push.pop_bit();
 
-                match Self::is_promotion(board.side_to_move(), to_square)? {
-                    true => {
-                        move_list.push(Move::new(
-                            from_square,
-                            to_square,
-                            MoveKind::Promotion,
-                            MoveFlag::KnightPromotion,
-                        ));
-
-                        move_list.push(Move::new(
-                            from_square,
-                            to_square,
-                            MoveKind::Promotion,
-                            MoveFlag::BishopPromotion,
-                        ));
-
-                        move_list.push(Move::new(
-                            from_square,
-                            to_square,
-                            MoveKind::Promotion,
-                            MoveFlag::RookPromotion,
-                        ));
-
-                        move_list.push(Move::new(
-                            from_square,
-                            to_square,
-                            MoveKind::Promotion,
-                            MoveFlag::QueenPromotion,
-                        ));
-                    }
-                    false => {
-                        move_list.push(Move::new(
-                            from_square,
-                            to_square,
-                            MoveKind::Quiet,
-                            MoveFlag::None,
-                        ));
-                    }
+                if Self::is_promotion(board.side_to_move(), to_square)? {
+                    Self::push_all_promotions(move_list, from_square, to_square);
+                } else {
+                    move_list.push(Move::new(
+                        from_square,
+                        to_square,
+                        MoveKind::Quiet,
+                        MoveFlag::None,
+                    ));
                 }
             }
 
@@ -243,9 +251,78 @@ impl MoveGenerator {
                     MoveFlag::None,
                 ));
             }
+
+            let en_passant_bb = board.en_passant_square.bitboard();
+
+            let enemy_side = match board.side_to_move() {
+                Side::White => Side::Black,
+                Side::Black => Side::White,
+            };
+
+            let enemy = board.occupancy(enemy_side).value() | en_passant_bb.value();
+            let pawn_attack_mask =
+                Self::pawn_attacks(board.side_to_move())[from_square.index()].value();
+
+            let mut attacks = Bitboard(pawn_attack_mask & enemy);
+
+            while attacks.value() != 0 {
+                let attacked_square = attacks.pop_bit();
+
+                if Self::is_promotion(board.side_to_move(), attacked_square)? {
+                    Self::push_all_promotions(move_list, from_square, attacked_square);
+                } else {
+                    move_list.push(Move::new(
+                        from_square,
+                        attacked_square,
+                        MoveKind::Capture,
+                        MoveFlag::None,
+                    ));
+                }
+            }
         }
 
         Ok(())
+    }
+
+    fn pawn_pushes(side: Side) -> [Bitboard; 64] {
+        match side {
+            Side::White => Self::WHITE_PAWN_PUSHES,
+            Side::Black => Self::BLACK_PAWN_PUSHES,
+        }
+    }
+
+    fn pawn_attacks(side: Side) -> [Bitboard; 64] {
+        match side {
+            Side::White => Self::WHITE_PAWN_ATTACKS,
+            Side::Black => Self::BLACK_PAWN_ATTACKS,
+        }
+    }
+
+    fn push_all_promotions(move_list: &mut MoveList, from: Square, to: Square) {
+        move_list.push(Move::new(
+            from,
+            to,
+            MoveKind::Promotion,
+            MoveFlag::KnightPromotion,
+        ));
+        move_list.push(Move::new(
+            from,
+            to,
+            MoveKind::Promotion,
+            MoveFlag::BishopPromotion,
+        ));
+        move_list.push(Move::new(
+            from,
+            to,
+            MoveKind::Promotion,
+            MoveFlag::RookPromotion,
+        ));
+        move_list.push(Move::new(
+            from,
+            to,
+            MoveKind::Promotion,
+            MoveFlag::QueenPromotion,
+        ));
     }
 
     fn is_promotion(side: Side, to_square: Square) -> anyhow::Result<bool> {
@@ -266,5 +343,15 @@ impl Debug for Move {
             self.kind(),
             self.flag()
         )
+    }
+}
+
+impl Debug for MoveList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in 0..self.count {
+            writeln!(f, "{:?}", self.moves[i])?;
+        }
+
+        Ok(())
     }
 }

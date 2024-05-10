@@ -17,5 +17,7 @@ fn main() -> anyhow::Result<()> {
 
     mg.generate_pawn_moves(&board, &mut move_list)?;
 
+    dbg!(move_list);
+
     Ok(())
 }
