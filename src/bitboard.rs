@@ -1,71 +1,55 @@
 use crate::square::{File, Rank, Square};
 use colored::Colorize;
-use std::fmt::{Debug, Display};
 
-#[derive(Clone, Copy, Default)]
-pub struct Bitboard(pub u64);
+pub type Bitboard = u64;
 
-pub const EMPTY_BB: Bitboard = Bitboard(0u64);
+pub const EMPTY_BB: Bitboard = 0u64;
 
-impl Bitboard {
-    pub fn set_bit(&mut self, square: Square) {
-        self.0 |= square.bitboard().value();
-    }
-
-    pub fn clear_bit(&mut self, square: Square) {
-        self.0 &= !(square.bitboard().value());
-    }
-
-    pub fn is_occupied(&self, square: Square) -> bool {
-        self.0 & (square.bitboard().value()) > 0
-    }
-
-    pub fn value(&self) -> u64 {
-        self.0
-    }
-
-    pub fn pop_bit(&mut self) -> Square {
-        let square: Square = self.get_lsb().trailing_zeros().into();
-        self.0 ^= square.bitboard().value();
-        square
-    }
-
-    fn get_lsb(&self) -> u64 {
-        self.value() & (!self.value() + 1)
-    }
+pub fn set_bit(bitboard: &mut Bitboard, square: Square) {
+    *bitboard |= square.bitboard();
 }
 
-impl Display for Bitboard {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+pub fn clear_bit(bitboard: &mut Bitboard, square: Square) {
+    *bitboard &= !(square.bitboard());
 }
 
-impl Debug for Bitboard {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for &rank in Rank::EVERY.iter().rev() {
-            for file in File::EVERY {
-                if file == File::A {
-                    write!(f, "  {}", (rank + 1).to_string().cyan())?;
-                }
+pub fn is_occupied(bitboard: &Bitboard, square: Square) -> bool {
+    bitboard & square.bitboard() > 0
+}
 
-                let square = Square::new(rank, file);
-                if self.is_occupied(square) {
-                    write!(f, "  1")?;
-                } else {
-                    write!(f, "  0")?;
-                }
+pub fn pop_bit(bitboard: &mut Bitboard) -> Square {
+    let square: Square = get_lsb(bitboard).trailing_zeros().into();
+    *bitboard ^= square.bitboard();
+    square
+}
+
+fn get_lsb(bitboard: &Bitboard) -> u64 {
+    bitboard & (!bitboard + 1)
+}
+
+pub fn print_bitboard(bitboard: &Bitboard, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    for &rank in Rank::EVERY.iter().rev() {
+        for file in File::EVERY {
+            if file == File::A {
+                write!(f, "  {}", (rank + 1).to_string().cyan())?;
             }
 
-            writeln!(f)?;
+            let square = Square::new(rank, file);
+            if is_occupied(bitboard, square) {
+                write!(f, "  1")?;
+            } else {
+                write!(f, "  0")?;
+            }
         }
 
-        write!(f, "   ")?;
-
-        for file in File::EVERY {
-            write!(f, "  {}", file.to_string().cyan())?;
-        }
-
-        Ok(())
+        writeln!(f)?;
     }
+
+    write!(f, "   ")?;
+
+    for file in File::EVERY {
+        write!(f, "  {}", file.to_string().cyan())?;
+    }
+
+    Ok(())
 }

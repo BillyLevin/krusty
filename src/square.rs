@@ -125,7 +125,7 @@ const fn init_square_bitboards() -> [Bitboard; 64] {
     let mut square = 0;
 
     while square < 64 {
-        bitboards[square] = Bitboard(1u64 << square);
+        bitboards[square] = 1u64 << square;
         square += 1;
     }
 
