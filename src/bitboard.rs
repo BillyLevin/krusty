@@ -1,9 +1,6 @@
 use crate::square::{File, Rank, Square};
 use colored::Colorize;
-use std::{
-    fmt::{Debug, Display},
-    ops::{BitOr, BitOrAssign},
-};
+use std::fmt::{Debug, Display};
 
 #[derive(Clone, Copy, Default)]
 pub struct Bitboard(pub u64);
