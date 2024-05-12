@@ -72,17 +72,3 @@ impl Debug for Bitboard {
         Ok(())
     }
 }
-
-impl BitOr for Bitboard {
-    type Output = Bitboard;
-
-    fn bitor(self, rhs: Self) -> Self::Output {
-        Bitboard(u64::bitor(self.0, rhs.0))
-    }
-}
-
-impl BitOrAssign for Bitboard {
-    fn bitor_assign(&mut self, rhs: Self) {
-        u64::bitor_assign(&mut self.0, rhs.0)
-    }
-}
