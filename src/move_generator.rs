@@ -233,6 +233,41 @@ const fn init_knight_attacks() -> [Bitboard; 64] {
     knight_attacks
 }
 
+const fn north_one(bits: u64) -> u64 {
+    bits << 8
+}
+const fn south_one(bits: u64) -> u64 {
+    bits >> 8
+}
+
+const fn east_one(bits: u64) -> u64 {
+    (bits << 1) & NOT_A_FILE
+}
+
+const fn west_one(bits: u64) -> u64 {
+    (bits >> 1) & NOT_H_FILE
+}
+
+const fn init_king_attacks() -> [Bitboard; 64] {
+    let mut square_idx: usize = 0;
+
+    let mut king_attacks: [Bitboard; 64] = [EMPTY_BB; 64];
+
+    while square_idx < 64 {
+        // "parallel prefix" method described here: https://www.chessprogramming.org/King_Pattern#by_Calculation
+        let mut king_bb = 1u64 << square_idx;
+        let mut attacks = east_one(king_bb) | west_one(king_bb);
+        king_bb |= attacks;
+        attacks |= north_one(king_bb) | south_one(king_bb);
+
+        king_attacks[square_idx] = Bitboard(attacks);
+
+        square_idx += 1;
+    }
+
+    king_attacks
+}
+
 impl MoveGenerator {
     // maps the `from` square to the `to` square when pushing a pawn
     const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
@@ -242,6 +277,8 @@ impl MoveGenerator {
     const BLACK_PAWN_ATTACKS: [Bitboard; 64] = init_black_pawn_attacks();
 
     const KNIGHT_ATTACKS: [Bitboard; 64] = init_knight_attacks();
+
+    const KING_ATTACKS: [Bitboard; 64] = init_king_attacks();
 
     const RANK_4_MASK: u64 = 4278190080u64;
     const RANK_5_MASK: u64 = 1095216660480u64;
@@ -365,6 +402,42 @@ impl MoveGenerator {
                 move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
             }
         }
+        Ok(())
+    }
+
+    pub fn generate_king_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut king =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::King))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        let from_square = king.pop_bit();
+
+        let possible_attacks = Self::KING_ATTACKS[from_square.index()].value();
+
+        let mut king_moves = Bitboard(possible_attacks & !current_side_occupancy.value());
+
+        while king_moves.value() != 0 {
+            let to_square = king_moves.pop_bit();
+
+            let is_capture = (to_square.bitboard().value() & enemy_occupancy.value()) != 0;
+
+            let move_kind = if is_capture {
+                MoveKind::Capture
+            } else {
+                MoveKind::Quiet
+            };
+
+            move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
+        }
+
         Ok(())
     }
 
