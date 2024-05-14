@@ -7,7 +7,7 @@ use anyhow::{bail, Context};
 use colored::Colorize;
 
 use crate::{
-    bitboard::{clear_bit, set_bit, Bitboard, EMPTY_BB},
+    bitboard::{Bitboard, EMPTY_BB},
     square::{File, Piece, PieceColor, PieceKind, Rank, Square},
 };
 
@@ -164,12 +164,8 @@ impl Board {
     }
 
     pub fn add_piece(&mut self, piece: Piece, square: Square) -> anyhow::Result<()> {
-        let piece_bitboard = self.get_piece_bb_mut(piece)?;
-        set_bit(piece_bitboard, square);
-
-        let occupancy = self.occupancy_mut(piece.color.try_into()?);
-        set_bit(occupancy, square);
-
+        self.get_piece_bb_mut(piece)?.set_bit(square);
+        self.occupancy_mut(piece.color.try_into()?).set_bit(square);
         self.pieces[square] = piece;
 
         Ok(())
@@ -181,8 +177,9 @@ impl Board {
         match piece.kind {
             PieceKind::NoPiece => bail!("cannot remove empty piece"),
             _ => {
-                set_bit(self.get_piece_bb_mut(piece)?, square);
-                clear_bit(self.occupancy_mut(piece.color.try_into()?), square);
+                self.get_piece_bb_mut(piece)?.set_bit(square);
+                self.occupancy_mut(piece.color.try_into()?)
+                    .clear_bit(square);
                 self.pieces[square] = Piece::default();
                 Ok(())
             }
@@ -286,7 +283,7 @@ impl Board {
     }
 
     pub fn empty_squares(&self) -> Bitboard {
-        !(self.occupancy(Side::White) | self.occupancy(Side::Black))
+        Bitboard(!(self.occupancy(Side::White).value() | self.occupancy(Side::Black).value()))
     }
 
     pub fn side_to_move(&self) -> Side {
