@@ -283,17 +283,17 @@ impl Board {
     }
 
     pub fn empty_squares(&self) -> Bitboard {
-        Bitboard(!(self.occupancy(Side::White).value() | self.occupancy(Side::Black).value()))
+        !(self.occupancy(Side::White) | self.occupancy(Side::Black))
     }
 
     pub fn side_to_move(&self) -> Side {
         self.side
     }
 
-    pub fn occupancy(&self, side: Side) -> &Bitboard {
+    pub fn occupancy(&self, side: Side) -> Bitboard {
         match side {
-            Side::White => &self.white_occupancies,
-            Side::Black => &self.black_occupancies,
+            Side::White => self.white_occupancies,
+            Side::Black => self.black_occupancies,
         }
     }
 

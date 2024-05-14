@@ -280,8 +280,8 @@ impl MoveGenerator {
 
     const KING_ATTACKS: [Bitboard; 64] = init_king_attacks();
 
-    const RANK_4_MASK: u64 = 4278190080u64;
-    const RANK_5_MASK: u64 = 1095216660480u64;
+    const RANK_4_MASK: Bitboard = Bitboard(4278190080u64);
+    const RANK_5_MASK: Bitboard = Bitboard(1095216660480u64);
 
     pub fn generate_pawn_moves(
         &self,
@@ -293,21 +293,16 @@ impl MoveGenerator {
         let mut pawns =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Pawn))?;
 
-        while pawns.value() != 0 {
+        while pawns != EMPTY_BB {
             let from_square = pawns.pop_bit();
-            let mut single_push =
-                Bitboard(pawn_pushes[from_square.index()].value() & empty.value());
+            let mut single_push = pawn_pushes[from_square.index()] & empty;
 
             let mut double_push = match board.side_to_move() {
-                Side::White => {
-                    Bitboard((single_push.value() << 8) & Self::RANK_4_MASK & empty.value())
-                }
-                Side::Black => {
-                    Bitboard((single_push.value() >> 8) & Self::RANK_5_MASK & empty.value())
-                }
+                Side::White => (single_push << 8) & Self::RANK_4_MASK & empty,
+                Side::Black => (single_push >> 8) & Self::RANK_5_MASK & empty,
             };
 
-            if single_push.value() != 0 {
+            if single_push != EMPTY_BB {
                 let to_square = single_push.pop_bit();
 
                 if Self::is_promotion(board.side_to_move(), to_square)? {
@@ -322,7 +317,7 @@ impl MoveGenerator {
                 }
             }
 
-            if double_push.value() != 0 {
+            if double_push != EMPTY_BB {
                 let to_square = double_push.pop_bit();
 
                 move_list.push(Move::new(
@@ -343,13 +338,12 @@ impl MoveGenerator {
                 Side::Black => Side::White,
             };
 
-            let enemy = board.occupancy(enemy_side).value() | en_passant_bb.value();
-            let pawn_attack_mask =
-                Self::pawn_attacks(board.side_to_move())[from_square.index()].value();
+            let enemy = board.occupancy(enemy_side) | en_passant_bb;
+            let pawn_attack_mask = Self::pawn_attacks(board.side_to_move())[from_square.index()];
 
-            let mut attacks = Bitboard(pawn_attack_mask & enemy);
+            let mut attacks = pawn_attack_mask & enemy;
 
-            while attacks.value() != 0 {
+            while attacks != EMPTY_BB {
                 let attacked_square = attacks.pop_bit();
 
                 if Self::is_promotion(board.side_to_move(), attacked_square)? {
@@ -381,17 +375,17 @@ impl MoveGenerator {
             Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
         };
 
-        while knights.value() != 0 {
+        while knights != EMPTY_BB {
             let from_square = knights.pop_bit();
 
-            let possible_attacks = Self::KNIGHT_ATTACKS[from_square.index()].value();
+            let possible_attacks = Self::KNIGHT_ATTACKS[from_square.index()];
 
-            let mut knight_moves = Bitboard(possible_attacks & !current_side_occupancy.value());
+            let mut knight_moves = possible_attacks & !current_side_occupancy;
 
-            while knight_moves.value() != 0 {
+            while knight_moves != EMPTY_BB {
                 let to_square = knight_moves.pop_bit();
 
-                let is_capture = (to_square.bitboard().value() & enemy_occupancy.value()) != 0;
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
 
                 let move_kind = if is_capture {
                     MoveKind::Capture
@@ -420,14 +414,14 @@ impl MoveGenerator {
 
         let from_square = king.pop_bit();
 
-        let possible_attacks = Self::KING_ATTACKS[from_square.index()].value();
+        let possible_attacks = Self::KING_ATTACKS[from_square.index()];
 
-        let mut king_moves = Bitboard(possible_attacks & !current_side_occupancy.value());
+        let mut king_moves = possible_attacks & !current_side_occupancy;
 
-        while king_moves.value() != 0 {
+        while king_moves != EMPTY_BB {
             let to_square = king_moves.pop_bit();
 
-            let is_capture = (to_square.bitboard().value() & enemy_occupancy.value()) != 0;
+            let is_capture = (to_square.bitboard() & enemy_occupancy) != EMPTY_BB;
 
             let move_kind = if is_capture {
                 MoveKind::Capture
