@@ -1,6 +1,9 @@
 use krusty::{
+    bitboard::Bitboard,
     board::Board,
+    generate_magics::generate_rook_blocker_mask,
     move_generator::{MoveGenerator, MoveList},
+    square::{File, Rank, Square},
 };
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -13,14 +16,19 @@ fn main() -> anyhow::Result<()> {
     board.parse_fen(KING_MOVES_FEN)?;
     println!("{}", board);
 
-    let mg = MoveGenerator {};
-    let mut move_list = MoveList::default();
+    // let mg = MoveGenerator {};
+    // let mut move_list = MoveList::default();
+    //
+    // mg.generate_pawn_moves(&board, &mut move_list)?;
+    // mg.generate_knight_moves(&board, &mut move_list)?;
+    // mg.generate_king_moves(&board, &mut move_list)?;
+    //
+    // dbg!(move_list);
 
-    mg.generate_pawn_moves(&board, &mut move_list)?;
-    mg.generate_knight_moves(&board, &mut move_list)?;
-    mg.generate_king_moves(&board, &mut move_list)?;
-
-    dbg!(move_list);
+    println!(
+        "{:?}",
+        generate_rook_blocker_mask(Square::new(Rank::Third, File::D))?
+    );
 
     Ok(())
 }
