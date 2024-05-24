@@ -1,7 +1,10 @@
 use krusty::{
     bitboard::Bitboard,
     board::Board,
-    generate_magics::{generate_bishop_blocker_mask, generate_rook_blocker_mask},
+    generate_magics::{
+        generate_bishop_attack_mask, generate_bishop_blocker_mask, generate_rook_attack_mask,
+        generate_rook_blocker_mask,
+    },
     move_generator::{MoveGenerator, MoveList},
     square::{File, Rank, Square},
 };
@@ -25,8 +28,22 @@ fn main() -> anyhow::Result<()> {
     //
     // dbg!(move_list);
 
+    println!("rook masks:");
     println!("{:?}", generate_rook_blocker_mask(Square::D3)?);
+    println!(
+        "{:?}",
+        generate_rook_attack_mask(
+            Square::D3,
+            Square::D2.bitboard() | Square::C3.bitboard() | Square::D5.bitboard()
+        )?
+    );
+
+    println!("bishop masks:");
     println!("{:?}", generate_bishop_blocker_mask(Square::D5)?);
+    println!(
+        "{:?}",
+        generate_bishop_attack_mask(Square::D5, Square::C4.bitboard() | Square::F3.bitboard())?
+    );
 
     Ok(())
 }

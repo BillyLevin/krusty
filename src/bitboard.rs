@@ -42,6 +42,8 @@ impl Display for Bitboard {
 
 impl Debug for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f)?;
+
         for &rank in Rank::EVERY.iter().rev() {
             for file in File::EVERY {
                 if file == File::A {
@@ -64,6 +66,8 @@ impl Debug for Bitboard {
         for file in File::EVERY {
             write!(f, "  {}", file.to_string().cyan())?;
         }
+
+        writeln!(f)?;
 
         Ok(())
     }
