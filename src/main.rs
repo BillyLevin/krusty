@@ -1,7 +1,7 @@
 use krusty::{
     bitboard::{Bitboard, EMPTY_BB},
     board::Board,
-    generate_magics::{print_bishop_magics, print_rook_magics},
+    generate_magics::print_magics,
     move_generator::{MoveGenerator, MoveList},
     square::{File, Rank, Square},
 };
@@ -14,7 +14,7 @@ const KING_MOVES_FEN: &str = "8/2k5/8/4Pn2/3BK3/8/8/8 w - - 0 1";
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
     board.parse_fen(KING_MOVES_FEN)?;
-    println!("{}", board);
+    // println!("{}", board);
 
     // let mg = MoveGenerator {};
     // let mut move_list = MoveList::default();
@@ -25,8 +25,7 @@ fn main() -> anyhow::Result<()> {
     //
     // dbg!(move_list);
 
-    print_rook_magics()?;
-    print_bishop_magics()?;
+    print_magics();
 
     Ok(())
 }
