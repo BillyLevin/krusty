@@ -2,7 +2,9 @@ use crate::square::{File, Rank, Square};
 use colored::Colorize;
 use std::{
     fmt::{Debug, Display},
-    ops::{Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr},
+    ops::{
+        Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr, Sub,
+    },
 };
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -159,5 +161,13 @@ impl Add<u64> for Bitboard {
 impl From<Bitboard> for u64 {
     fn from(bitboard: Bitboard) -> Self {
         bitboard.0
+    }
+}
+
+impl Sub<Bitboard> for Bitboard {
+    type Output = Bitboard;
+
+    fn sub(self, rhs: Bitboard) -> Self::Output {
+        Bitboard(self.0.wrapping_sub(rhs.0))
     }
 }

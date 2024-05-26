@@ -16,7 +16,7 @@ impl Prng {
         result ^= result >> 27;
 
         self.state = result;
-        result * 2685821657736338717u64
+        result.wrapping_mul(2685821657736338717u64)
     }
 
     pub fn sparse_random_u64(&mut self) -> u64 {
