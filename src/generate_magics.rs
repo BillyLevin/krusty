@@ -221,3 +221,62 @@ pub fn print_rook_magics() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+fn find_bishop_magic(square: Square) -> anyhow::Result<(u64, usize)> {
+    let blocker_mask = generate_bishop_blocker_mask(square)?;
+
+    let mut candidate = MagicCandidate::new(blocker_mask);
+
+    loop {
+        candidate.update_magic();
+
+        if let Some(table_size) = check_bishop_magic(&candidate, square) {
+            return Ok((candidate.magic, table_size));
+        }
+    }
+}
+
+fn check_bishop_magic(candidate: &MagicCandidate, square: Square) -> Option<usize> {
+    let max_table_size = 1 << candidate.bits_in_mask;
+    let mut attack_table = vec![EMPTY_BB; max_table_size];
+
+    let mut blockers = EMPTY_BB;
+
+    loop {
+        let moves = generate_bishop_attack_mask(square, blockers).unwrap();
+        let index = candidate.get_magic_index(blockers);
+
+        let entry = attack_table.get_mut(index).unwrap();
+
+        if *entry == EMPTY_BB {
+            *entry = moves;
+        } else if *entry != moves {
+            return None;
+        }
+
+        blockers = (blockers - candidate.mask) & candidate.mask;
+        if blockers == EMPTY_BB {
+            break;
+        }
+    }
+
+    Some(attack_table.len())
+}
+
+pub fn print_bishop_magics() -> anyhow::Result<()> {
+    println!("const BISHOP_MAGICS: [u64; 64] = [");
+
+    let mut total_size = 0;
+
+    for square in 0..64usize {
+        let (magic, size) = find_bishop_magic(square.into())?;
+        println!("\t0x{:016X},", magic);
+        total_size += size;
+    }
+
+    println!("];");
+
+    println!("TOTAL SIZE: {total_size}");
+
+    Ok(())
+}

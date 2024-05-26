@@ -1,7 +1,7 @@
 use krusty::{
     bitboard::{Bitboard, EMPTY_BB},
     board::Board,
-    generate_magics::print_rook_magics,
+    generate_magics::{print_bishop_magics, print_rook_magics},
     move_generator::{MoveGenerator, MoveList},
     square::{File, Rank, Square},
 };
@@ -26,6 +26,7 @@ fn main() -> anyhow::Result<()> {
     // dbg!(move_list);
 
     print_rook_magics()?;
+    print_bishop_magics()?;
 
     Ok(())
 }
