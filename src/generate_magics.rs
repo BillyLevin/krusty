@@ -13,7 +13,7 @@ const BISHOP_DIRECTIONS: [(i32, i32); 4] = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
 struct MagicCandidate {
     magic: u64,
     mask: Bitboard,
-    bits_in_mask: u32,
+    bits_in_mask: u8,
     prng: Prng,
 }
 
@@ -22,7 +22,7 @@ impl MagicCandidate {
         Self {
             magic: 0,
             mask,
-            bits_in_mask: mask.0.count_ones(),
+            bits_in_mask: mask.0.count_ones() as u8,
             prng: Prng::new(123),
         }
     }
@@ -35,7 +35,7 @@ impl MagicCandidate {
         let blockers = self.mask & blockers;
         let hash = self.magic.wrapping_mul(blockers.0);
         let shift = 64 - self.bits_in_mask;
-        hash.wrapping_shr(shift) as usize
+        (hash >> shift) as usize
     }
 }
 
@@ -49,12 +49,18 @@ fn generate_rook_blocker_mask(square: Square) -> anyhow::Result<Bitboard> {
         let mut rank = start_rank;
         let mut file = start_file;
 
-        while rank > 0 && rank <= 6 && file > 0 && file <= 6 {
-            blockers |=
+        loop {
+            let next_square =
                 Square::new((rank as usize).try_into()?, (file as usize).try_into()?).bitboard();
 
             rank += rank_offset;
             file += file_offset;
+
+            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
+                blockers |= next_square;
+            } else {
+                break;
+            }
         }
     }
 
@@ -72,12 +78,18 @@ fn generate_bishop_blocker_mask(square: Square) -> anyhow::Result<Bitboard> {
         let mut rank = start_rank;
         let mut file = start_file;
 
-        while rank > 0 && rank <= 6 && file > 0 && file <= 6 {
-            blockers |=
+        loop {
+            let next_square =
                 Square::new((rank as usize).try_into()?, (file as usize).try_into()?).bitboard();
 
             rank += rank_offset;
             file += file_offset;
+
+            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
+                blockers |= next_square;
+            } else {
+                break;
+            }
         }
     }
 
@@ -95,20 +107,26 @@ fn generate_rook_attack_mask(square: Square, blockers: Bitboard) -> anyhow::Resu
         let mut rank = start_rank;
         let mut file = start_file;
 
-        while rank > 0 && rank <= 6 && file > 0 && file <= 6 {
-            let current_square_bitboard =
+        loop {
+            let next_square =
                 Square::new((rank as usize).try_into()?, (file as usize).try_into()?).bitboard();
-            attacks |= current_square_bitboard;
-
-            if blockers & current_square_bitboard != EMPTY_BB {
-                break;
-            }
 
             rank += rank_offset;
             file += file_offset;
+
+            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
+                attacks |= next_square;
+            } else {
+                break;
+            }
+
+            if blockers & next_square != EMPTY_BB {
+                break;
+            }
         }
     }
 
+    attacks.clear_bit(square);
     Ok(attacks)
 }
 
@@ -122,20 +140,26 @@ fn generate_bishop_attack_mask(square: Square, blockers: Bitboard) -> anyhow::Re
         let mut rank = start_rank;
         let mut file = start_file;
 
-        while rank > 0 && rank <= 6 && file > 0 && file <= 6 {
-            let current_square_bitboard =
+        loop {
+            let next_square =
                 Square::new((rank as usize).try_into()?, (file as usize).try_into()?).bitboard();
-            attacks |= current_square_bitboard;
-
-            if blockers & current_square_bitboard != EMPTY_BB {
-                break;
-            }
 
             rank += rank_offset;
             file += file_offset;
+
+            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
+                attacks |= next_square;
+            } else {
+                break;
+            }
+
+            if blockers & next_square != EMPTY_BB {
+                break;
+            }
         }
     }
 
+    attacks.clear_bit(square);
     Ok(attacks)
 }
 
@@ -149,11 +173,13 @@ fn check_rook_magic(candidate: &MagicCandidate, square: Square) -> Option<usize>
         let moves = generate_rook_attack_mask(square, blockers).unwrap();
         let index = candidate.get_magic_index(blockers);
 
-        match attack_table.get(index).unwrap() {
-            &EMPTY_BB => attack_table[index] = moves,
-            bb if *bb != moves => return None,
-            _ => (),
-        };
+        let entry = attack_table.get_mut(index).unwrap();
+
+        if *entry == EMPTY_BB {
+            *entry = moves;
+        } else if *entry != moves {
+            return None;
+        }
 
         blockers = (blockers - candidate.mask) & candidate.mask;
         if blockers == EMPTY_BB {
@@ -185,11 +211,13 @@ pub fn print_rook_magics() -> anyhow::Result<()> {
 
     for square in 0..64usize {
         let (magic, size) = find_rook_magic(square.into())?;
-        println!("\t0x{:016X}", magic);
+        println!("\t0x{:016X},", magic);
         total_size += size;
     }
 
     println!("];");
+
+    println!("TOTAL SIZE: {total_size}");
 
     Ok(())
 }

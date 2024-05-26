@@ -1,5 +1,5 @@
 use krusty::{
-    bitboard::Bitboard,
+    bitboard::{Bitboard, EMPTY_BB},
     board::Board,
     generate_magics::print_rook_magics,
     move_generator::{MoveGenerator, MoveList},
