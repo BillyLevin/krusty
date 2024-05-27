@@ -22,6 +22,7 @@ struct MagicCandidate {
 struct DiscoveredMagic {
     magic: u64,
     shift: u8,
+    mask: u64,
 }
 
 impl MagicCandidate {
@@ -59,6 +60,7 @@ fn find_magic(square: Square, directions: [(i32, i32); 4]) -> (DiscoveredMagic, 
                 DiscoveredMagic {
                     magic: candidate.magic,
                     shift: 64 - candidate.bits_in_mask,
+                    mask: candidate.mask.0,
                 },
                 table_size,
             );
@@ -103,10 +105,11 @@ fn print_rook_magics() {
     let mut total_size = 0;
 
     for square in 0..64usize {
-        let (DiscoveredMagic { magic, shift }, size) = find_magic(square.into(), ROOK_DIRECTIONS);
+        let (DiscoveredMagic { magic, shift, mask }, size) =
+            find_magic(square.into(), ROOK_DIRECTIONS);
         println!(
-            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {} }},",
-            magic, shift, total_size
+            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {}, blocker_mask: 0x{:016x} }},",
+            magic, shift, total_size, mask
         );
         total_size += size;
     }
@@ -122,10 +125,11 @@ fn print_bishop_magics() {
     let mut total_size = 0;
 
     for square in 0..64usize {
-        let (DiscoveredMagic { magic, shift }, size) = find_magic(square.into(), BISHOP_DIRECTIONS);
+        let (DiscoveredMagic { magic, shift, mask }, size) =
+            find_magic(square.into(), BISHOP_DIRECTIONS);
         println!(
-            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {} }},",
-            magic, shift, total_size
+            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {}, blocker_mask: 0x{:016x} }},",
+            magic, shift, total_size, mask
         );
         total_size += size;
     }

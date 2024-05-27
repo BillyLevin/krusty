@@ -351,12 +351,12 @@ fn init_rook_attacks() -> Vec<Bitboard> {
     let mut rook_attacks = vec![EMPTY_BB; ROOK_ATTACK_TABLE_SIZE];
 
     for (square, magic) in ROOK_MAGICS.iter().enumerate() {
-        let mask = generate_sliding_blocker_mask(square.into(), ROOK_DIRECTIONS);
+        let mask = Bitboard(magic.blocker_mask);
         let mut blockers = EMPTY_BB;
 
         loop {
             let moves = generate_sliding_attack_mask(square.into(), blockers, ROOK_DIRECTIONS);
-            rook_attacks[magic.get_magic_index(blockers & mask)] = moves;
+            rook_attacks[magic.get_magic_index(blockers)] = moves;
 
             blockers = (blockers - mask) & mask;
             if blockers == EMPTY_BB {
@@ -372,12 +372,12 @@ fn init_bishop_attacks() -> Vec<Bitboard> {
     let mut bishop_attacks = vec![EMPTY_BB; BISHOP_ATTACK_TABLE_SIZE];
 
     for (square, magic) in BISHOP_MAGICS.iter().enumerate() {
-        let mask = generate_sliding_blocker_mask(square.into(), BISHOP_DIRECTIONS);
+        let mask = Bitboard(magic.blocker_mask);
         let mut blockers = EMPTY_BB;
 
         loop {
             let moves = generate_sliding_attack_mask(square.into(), blockers, BISHOP_DIRECTIONS);
-            bishop_attacks[magic.get_magic_index(blockers & mask)] = moves;
+            bishop_attacks[magic.get_magic_index(blockers)] = moves;
 
             blockers = (blockers - mask) & mask;
             if blockers == EMPTY_BB {
@@ -576,9 +576,7 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.rook_attacks[magic.get_magic_index(
-                occupancies & generate_sliding_blocker_mask(from_square, ROOK_DIRECTIONS),
-            )];
+            let possible_attacks = self.rook_attacks[magic.get_magic_index(occupancies)];
 
             let mut rook_moves = possible_attacks & !current_side_occupancy;
 
