@@ -18,12 +18,30 @@ fn main() -> anyhow::Result<()> {
     board.parse_fen(CASTLING_FEN)?;
     println!("{}", board);
 
-    let mg = MoveGenerator::default();
-    let mut move_list = MoveList::default();
+    // let mg = MoveGenerator::default();
+    // let mut move_list = MoveList::default();
+    //
+    // mg.generate_all_moves(&board, &mut move_list)?;
+    //
+    // dbg!(move_list);
 
-    mg.generate_all_moves(&board, &mut move_list)?;
+    board.make_move(Move::new(
+        Square::E1,
+        Square::G1,
+        MoveKind::Castle,
+        MoveFlag::None,
+    ))?;
 
-    dbg!(move_list);
+    println!("{}", board);
+
+    board.make_move(Move::new(
+        Square::E8,
+        Square::C8,
+        MoveKind::Castle,
+        MoveFlag::None,
+    ))?;
+
+    println!("{}", board);
 
     Ok(())
 }
