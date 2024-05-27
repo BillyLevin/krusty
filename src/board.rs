@@ -75,7 +75,7 @@ pub struct Board {
     white_occupancies: Bitboard,
     black_occupancies: Bitboard,
 
-    side: Side,
+    pub side: Side,
 
     castling_rights: CastlingRights,
 
@@ -288,6 +288,13 @@ impl Board {
 
     pub fn side_to_move(&self) -> Side {
         self.side
+    }
+
+    pub fn switch_side(&mut self) {
+        self.side = match self.side {
+            Side::White => Side::Black,
+            Side::Black => Side::White,
+        };
     }
 
     pub fn occupancy(&self, side: Side) -> Bitboard {
