@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
     board::{Board, Side},
+    magics::{BISHOP_ATTACK_TABLE_SIZE, BISHOP_MAGICS, ROOK_ATTACK_TABLE_SIZE, ROOK_MAGICS},
     square::{Piece, PieceKind, Rank, Square},
 };
 
@@ -120,7 +121,10 @@ impl Default for MoveList {
     }
 }
 
-pub struct MoveGenerator;
+pub struct MoveGenerator {
+    rook_attacks: Vec<Bitboard>,
+    bishop_attacks: Vec<Bitboard>,
+}
 
 const fn init_white_pawn_pushes() -> [Bitboard; 64] {
     let mut square_idx: usize = 0;
@@ -266,6 +270,123 @@ const fn init_king_attacks() -> [Bitboard; 64] {
     }
 
     king_attacks
+}
+
+pub const ROOK_DIRECTIONS: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+pub const BISHOP_DIRECTIONS: [(i32, i32); 4] = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
+
+pub fn generate_sliding_blocker_mask(square: Square, directions: [(i32, i32); 4]) -> Bitboard {
+    let mut blockers = EMPTY_BB;
+
+    let start_rank = (square.index() / 8) as i32;
+    let start_file = (square.index() % 8) as i32;
+
+    for (rank_offset, file_offset) in directions {
+        let mut rank = start_rank;
+        let mut file = start_file;
+
+        loop {
+            let next_square = Square::new(
+                (rank as usize).try_into().unwrap(),
+                (file as usize).try_into().unwrap(),
+            )
+            .bitboard();
+
+            rank += rank_offset;
+            file += file_offset;
+
+            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
+                blockers |= next_square;
+            } else {
+                break;
+            }
+        }
+    }
+
+    blockers.clear_bit(square);
+    blockers
+}
+
+pub fn generate_sliding_attack_mask(
+    square: Square,
+    blockers: Bitboard,
+    directions: [(i32, i32); 4],
+) -> Bitboard {
+    let mut attacks = EMPTY_BB;
+
+    let start_rank = (square.index() / 8) as i32;
+    let start_file = (square.index() % 8) as i32;
+
+    for (rank_offset, file_offset) in directions {
+        let mut rank = start_rank;
+        let mut file = start_file;
+
+        loop {
+            let next_square = Square::new(
+                (rank as usize).try_into().unwrap(),
+                (file as usize).try_into().unwrap(),
+            )
+            .bitboard();
+
+            rank += rank_offset;
+            file += file_offset;
+
+            attacks |= next_square;
+
+            if !(0..=7).contains(&rank) || !(0..=7).contains(&file) {
+                break;
+            }
+
+            if (blockers & next_square) != EMPTY_BB {
+                break;
+            }
+        }
+    }
+
+    attacks.clear_bit(square);
+    attacks
+}
+
+fn init_rook_attacks() -> Vec<Bitboard> {
+    let mut rook_attacks = vec![EMPTY_BB; ROOK_ATTACK_TABLE_SIZE];
+
+    for (square, magic) in ROOK_MAGICS.iter().enumerate() {
+        let mask = generate_sliding_blocker_mask(square.into(), ROOK_DIRECTIONS);
+        let mut blockers = EMPTY_BB;
+
+        loop {
+            let moves = generate_sliding_attack_mask(square.into(), blockers, ROOK_DIRECTIONS);
+            rook_attacks[magic.get_magic_index(blockers & mask)] = moves;
+
+            blockers = (blockers - mask) & mask;
+            if blockers == EMPTY_BB {
+                break;
+            }
+        }
+    }
+
+    rook_attacks
+}
+
+fn init_bishop_attacks() -> Vec<Bitboard> {
+    let mut bishop_attacks = vec![EMPTY_BB; BISHOP_ATTACK_TABLE_SIZE];
+
+    for (square, magic) in BISHOP_MAGICS.iter().enumerate() {
+        let mask = generate_sliding_blocker_mask(square.into(), BISHOP_DIRECTIONS);
+        let mut blockers = EMPTY_BB;
+
+        loop {
+            let moves = generate_sliding_attack_mask(square.into(), blockers, BISHOP_DIRECTIONS);
+            bishop_attacks[magic.get_magic_index(blockers & mask)] = moves;
+
+            blockers = (blockers - mask) & mask;
+            if blockers == EMPTY_BB {
+                break;
+            }
+        }
+    }
+
+    bishop_attacks
 }
 
 impl MoveGenerator {
@@ -435,6 +556,49 @@ impl MoveGenerator {
         Ok(())
     }
 
+    pub fn generate_rook_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut rooks =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Rook))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while rooks != EMPTY_BB {
+            let from_square = rooks.pop_bit();
+
+            let magic = ROOK_MAGICS[from_square.index()];
+
+            let occupancies = current_side_occupancy | enemy_occupancy;
+
+            let possible_attacks = self.rook_attacks[magic.get_magic_index(
+                occupancies & generate_sliding_blocker_mask(from_square, ROOK_DIRECTIONS),
+            )];
+
+            let mut rook_moves = possible_attacks & !current_side_occupancy;
+
+            while rook_moves != EMPTY_BB {
+                let to_square = rook_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                let move_kind = if is_capture {
+                    MoveKind::Capture
+                } else {
+                    MoveKind::Quiet
+                };
+
+                move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
+            }
+        }
+        Ok(())
+    }
+
     fn pawn_pushes(side: Side) -> [Bitboard; 64] {
         match side {
             Side::White => Self::WHITE_PAWN_PUSHES,
@@ -480,6 +644,15 @@ impl MoveGenerator {
         match side {
             Side::White => Ok(to_square.rank()? == Rank::Eighth),
             Side::Black => Ok(to_square.rank()? == Rank::First),
+        }
+    }
+}
+
+impl Default for MoveGenerator {
+    fn default() -> Self {
+        Self {
+            rook_attacks: init_rook_attacks(),
+            bishop_attacks: init_bishop_attacks(),
         }
     }
 }

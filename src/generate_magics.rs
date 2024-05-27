@@ -4,19 +4,24 @@
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
-    magics::generate_blocker_mask,
+    move_generator::{
+        generate_sliding_attack_mask, generate_sliding_blocker_mask, BISHOP_DIRECTIONS,
+        ROOK_DIRECTIONS,
+    },
     prng::Prng,
     square::Square,
 };
-
-const ROOK_DIRECTIONS: [(i32, i32); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
-const BISHOP_DIRECTIONS: [(i32, i32); 4] = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
 
 struct MagicCandidate {
     magic: u64,
     mask: Bitboard,
     bits_in_mask: u8,
     prng: Prng,
+}
+
+struct DiscoveredMagic {
+    magic: u64,
+    shift: u8,
 }
 
 impl MagicCandidate {
@@ -41,48 +46,8 @@ impl MagicCandidate {
     }
 }
 
-fn generate_attack_mask(
-    square: Square,
-    blockers: Bitboard,
-    directions: [(i32, i32); 4],
-) -> Bitboard {
-    let mut attacks = EMPTY_BB;
-
-    let start_rank = (square.index() / 8) as i32;
-    let start_file = (square.index() % 8) as i32;
-
-    for (rank_offset, file_offset) in directions {
-        let mut rank = start_rank;
-        let mut file = start_file;
-
-        loop {
-            let next_square = Square::new(
-                (rank as usize).try_into().unwrap(),
-                (file as usize).try_into().unwrap(),
-            )
-            .bitboard();
-
-            rank += rank_offset;
-            file += file_offset;
-
-            if (0..=7).contains(&rank) && (0..=7).contains(&file) {
-                attacks |= next_square;
-            } else {
-                break;
-            }
-
-            if blockers & next_square != EMPTY_BB {
-                break;
-            }
-        }
-    }
-
-    attacks.clear_bit(square);
-    attacks
-}
-
-fn find_magic(square: Square, directions: [(i32, i32); 4]) -> (u64, usize) {
-    let blocker_mask = generate_blocker_mask(square, directions);
+fn find_magic(square: Square, directions: [(i32, i32); 4]) -> (DiscoveredMagic, usize) {
+    let blocker_mask = generate_sliding_blocker_mask(square, directions);
 
     let mut candidate = MagicCandidate::new(blocker_mask);
 
@@ -90,7 +55,13 @@ fn find_magic(square: Square, directions: [(i32, i32); 4]) -> (u64, usize) {
         candidate.update_magic();
 
         if let Some(table_size) = check_magic(&candidate, square, directions) {
-            return (candidate.magic, table_size);
+            return (
+                DiscoveredMagic {
+                    magic: candidate.magic,
+                    shift: 64 - candidate.bits_in_mask,
+                },
+                table_size,
+            );
         }
     }
 }
@@ -106,7 +77,7 @@ fn check_magic(
     let mut blockers = EMPTY_BB;
 
     loop {
-        let moves = generate_attack_mask(square, blockers, directions);
+        let moves = generate_sliding_attack_mask(square, blockers, directions);
         let index = candidate.get_magic_index(blockers);
 
         let entry = attack_table.get_mut(index).unwrap();
@@ -132,17 +103,17 @@ fn print_rook_magics() {
     let mut total_size = 0;
 
     for square in 0..64usize {
-        let (magic, size) = find_magic(square.into(), ROOK_DIRECTIONS);
+        let (DiscoveredMagic { magic, shift }, size) = find_magic(square.into(), ROOK_DIRECTIONS);
         println!(
-            "\tMagicNumber {{ magic: 0x{:016X}, offset: {} }},",
-            magic, total_size
+            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {} }},",
+            magic, shift, total_size
         );
         total_size += size;
     }
 
     println!("];");
 
-    println!("const ROOK_ATTACK_TABLE_SIZE: usize = {total_size};");
+    println!("pub const ROOK_ATTACK_TABLE_SIZE: usize = {total_size};");
 }
 
 fn print_bishop_magics() {
@@ -151,17 +122,17 @@ fn print_bishop_magics() {
     let mut total_size = 0;
 
     for square in 0..64usize {
-        let (magic, size) = find_magic(square.into(), BISHOP_DIRECTIONS);
+        let (DiscoveredMagic { magic, shift }, size) = find_magic(square.into(), BISHOP_DIRECTIONS);
         println!(
-            "\tMagicNumber {{ magic: 0x{:016X}, offset: {} }},",
-            magic, total_size
+            "\tMagicNumber {{ magic: 0x{:016X}, shift: {}, offset: {} }},",
+            magic, shift, total_size
         );
         total_size += size;
     }
 
     println!("];");
 
-    println!("const BISHOP_ATTACK_TABLE_SIZE: usize = {total_size};");
+    println!("pub const BISHOP_ATTACK_TABLE_SIZE: usize = {total_size};");
 }
 
 pub fn print_magics() {
