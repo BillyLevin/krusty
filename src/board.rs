@@ -13,7 +13,7 @@ use crate::{
 
 type BoardPieces = [Piece; 64];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Side {
     White,
     Black,
@@ -321,6 +321,10 @@ impl Board {
             Side::White => &mut self.white_occupancies,
             Side::Black => &mut self.black_occupancies,
         }
+    }
+
+    pub fn is_square_attacked(&self, f1: Square) -> bool {
+        todo!()
     }
 }
 

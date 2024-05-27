@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
-    board::{Board, Side},
+    board::{Board, CastlingKind, Side},
     magics::{BISHOP_ATTACK_TABLE_SIZE, BISHOP_MAGICS, ROOK_ATTACK_TABLE_SIZE, ROOK_MAGICS},
     square::{Piece, PieceKind, Rank, Square},
 };
@@ -415,6 +415,7 @@ impl MoveGenerator {
     ) -> anyhow::Result<()> {
         self.generate_pawn_moves(board, move_list)?;
         self.generate_king_moves(board, move_list)?;
+        self.generate_castling_moves(board, move_list)?;
         self.generate_knight_moves(board, move_list)?;
         self.generate_bishop_moves(board, move_list)?;
         self.generate_rook_moves(board, move_list)?;
@@ -673,6 +674,76 @@ impl MoveGenerator {
                 move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
             }
         }
+        Ok(())
+    }
+
+    fn generate_castling_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let occupancies = board.occupancy(Side::White) | board.occupancy(Side::Black);
+
+        if board.side_to_move() == Side::White {
+            if board.can_castle(CastlingKind::WhiteKing)
+                && !occupancies.is_occupied(Square::F1)
+                && !occupancies.is_occupied(Square::G1)
+                && !board.is_square_attacked(Square::E1)
+                && !board.is_square_attacked(Square::F1)
+            {
+                move_list.push(Move::new(
+                    Square::E1,
+                    Square::G1,
+                    MoveKind::Castle,
+                    MoveFlag::None,
+                ));
+            }
+
+            if board.can_castle(CastlingKind::WhiteQueen)
+                && !occupancies.is_occupied(Square::D1)
+                && !occupancies.is_occupied(Square::C1)
+                && !occupancies.is_occupied(Square::B1)
+                && !board.is_square_attacked(Square::E1)
+                && !board.is_square_attacked(Square::D1)
+            {
+                move_list.push(Move::new(
+                    Square::E1,
+                    Square::C1,
+                    MoveKind::Castle,
+                    MoveFlag::None,
+                ));
+            }
+        } else {
+            if board.can_castle(CastlingKind::BlackKing)
+                && !occupancies.is_occupied(Square::F8)
+                && !occupancies.is_occupied(Square::G8)
+                && !board.is_square_attacked(Square::E8)
+                && !board.is_square_attacked(Square::F8)
+            {
+                move_list.push(Move::new(
+                    Square::E8,
+                    Square::G8,
+                    MoveKind::Castle,
+                    MoveFlag::None,
+                ));
+            }
+
+            if board.can_castle(CastlingKind::BlackQueen)
+                && !occupancies.is_occupied(Square::D8)
+                && !occupancies.is_occupied(Square::C8)
+                && !occupancies.is_occupied(Square::B8)
+                && !board.is_square_attacked(Square::E8)
+                && !board.is_square_attacked(Square::D8)
+            {
+                move_list.push(Move::new(
+                    Square::E8,
+                    Square::C8,
+                    MoveKind::Castle,
+                    MoveFlag::None,
+                ));
+            }
+        }
+
         Ok(())
     }
 
