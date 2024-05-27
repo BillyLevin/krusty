@@ -1,6 +1,6 @@
 use krusty::{
     board::Board,
-    move_generator::{Move, MoveFlag, MoveKind},
+    move_generator::{Move, MoveFlag, MoveGenerator, MoveKind, MoveList},
     square::Square,
 };
 
@@ -11,38 +11,19 @@ const KING_MOVES_FEN: &str = "8/2k5/8/4Pn2/3BK3/8/8/8 w - - 0 1";
 const ROOK_MOVES_FEN: &str = "6k1/8/5r1p/8/1nR5/5N2/8/6K1 b - - 0 1";
 const BISHOP_MOVES_FEN: &str = "6k1/1b6/4n2P/8/1n4B1/1B3N2/1N6/2b2K1 b - - 0 1";
 const QUEEN_MOVES_FEN: &str = "6k1/7P/4nq2/8/1nQ5/5N2/1N6/6K1 b - - 0 1";
+const CASTLING_FEN: &str = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
-    board.parse_fen(START_POSITION_FEN)?;
+    board.parse_fen(CASTLING_FEN)?;
     println!("{}", board);
 
-    board.make_move(Move::new(
-        Square::E2,
-        Square::E4,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?;
+    let mg = MoveGenerator::default();
+    let mut move_list = MoveList::default();
 
-    println!("{}", board);
+    mg.generate_all_moves(&board, &mut move_list)?;
 
-    board.make_move(Move::new(
-        Square::D7,
-        Square::D5,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?;
-
-    println!("{}", board);
-
-    board.make_move(Move::new(
-        Square::E4,
-        Square::D5,
-        MoveKind::Capture,
-        MoveFlag::None,
-    ))?;
-
-    println!("{}", board);
+    dbg!(move_list);
 
     Ok(())
 }

@@ -683,13 +683,14 @@ impl MoveGenerator {
         move_list: &mut MoveList,
     ) -> anyhow::Result<()> {
         let occupancies = board.occupancy(Side::White) | board.occupancy(Side::Black);
+        let side = board.side_to_move();
 
-        if board.side_to_move() == Side::White {
+        if side == Side::White {
             if board.can_castle(CastlingKind::WhiteKing)
                 && !occupancies.is_occupied(Square::F1)
                 && !occupancies.is_occupied(Square::G1)
-                && !board.is_square_attacked(Square::E1)
-                && !board.is_square_attacked(Square::F1)
+                && !self.is_square_attacked(board, Square::E1, !side)
+                && !self.is_square_attacked(board, Square::F1, !side)
             {
                 move_list.push(Move::new(
                     Square::E1,
@@ -703,8 +704,8 @@ impl MoveGenerator {
                 && !occupancies.is_occupied(Square::D1)
                 && !occupancies.is_occupied(Square::C1)
                 && !occupancies.is_occupied(Square::B1)
-                && !board.is_square_attacked(Square::E1)
-                && !board.is_square_attacked(Square::D1)
+                && !self.is_square_attacked(board, Square::E1, !side)
+                && !self.is_square_attacked(board, Square::D1, !side)
             {
                 move_list.push(Move::new(
                     Square::E1,
@@ -717,8 +718,8 @@ impl MoveGenerator {
             if board.can_castle(CastlingKind::BlackKing)
                 && !occupancies.is_occupied(Square::F8)
                 && !occupancies.is_occupied(Square::G8)
-                && !board.is_square_attacked(Square::E8)
-                && !board.is_square_attacked(Square::F8)
+                && !self.is_square_attacked(board, Square::E8, !side)
+                && !self.is_square_attacked(board, Square::F8, !side)
             {
                 move_list.push(Move::new(
                     Square::E8,
@@ -732,8 +733,8 @@ impl MoveGenerator {
                 && !occupancies.is_occupied(Square::D8)
                 && !occupancies.is_occupied(Square::C8)
                 && !occupancies.is_occupied(Square::B8)
-                && !board.is_square_attacked(Square::E8)
-                && !board.is_square_attacked(Square::D8)
+                && !self.is_square_attacked(board, Square::E8, !side)
+                && !self.is_square_attacked(board, Square::D8, !side)
             {
                 move_list.push(Move::new(
                     Square::E8,
@@ -793,6 +794,66 @@ impl MoveGenerator {
             Side::White => Ok(to_square.rank()? == Rank::Eighth),
             Side::Black => Ok(to_square.rank()? == Rank::First),
         }
+    }
+
+    pub fn is_square_attacked(&self, board: &Board, square: Square, attacker_side: Side) -> bool {
+        let pawns = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Pawn))
+            .unwrap();
+
+        if Self::pawn_attacks(!attacker_side)[square.index()] & pawns != EMPTY_BB {
+            return true;
+        }
+
+        let king = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::King))
+            .unwrap();
+
+        if Self::KING_ATTACKS[square.index()] & king != EMPTY_BB {
+            return true;
+        }
+
+        let knights = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Knight))
+            .unwrap();
+
+        if Self::KNIGHT_ATTACKS[square.index()] & knights != EMPTY_BB {
+            return true;
+        }
+
+        let occupancies = board.occupancy(Side::White) | board.occupancy(Side::Black);
+
+        let bishops = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Bishop))
+            .unwrap();
+
+        let bishop_magic = BISHOP_MAGICS[square.index()];
+        let bishop_attacks = self.bishop_attacks[bishop_magic.get_magic_index(occupancies)];
+
+        if bishop_attacks & bishops != EMPTY_BB {
+            return true;
+        }
+
+        let rooks = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Rook))
+            .unwrap();
+
+        let rook_magic = ROOK_MAGICS[square.index()];
+        let rook_attacks = self.rook_attacks[rook_magic.get_magic_index(occupancies)];
+
+        if rook_attacks & rooks != EMPTY_BB {
+            return true;
+        }
+
+        let queens = board
+            .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Queen))
+            .unwrap();
+
+        if (rook_attacks | bishop_attacks) & queens != EMPTY_BB {
+            return true;
+        }
+
+        false
     }
 }
 

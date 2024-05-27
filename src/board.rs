@@ -1,6 +1,6 @@
 use std::{
     fmt::{Debug, Display},
-    ops::{Index, IndexMut},
+    ops::{Index, IndexMut, Not},
 };
 
 use anyhow::{bail, Context};
@@ -27,6 +27,17 @@ impl TryFrom<PieceColor> for Side {
             PieceColor::White => Ok(Side::White),
             PieceColor::Black => Ok(Side::Black),
             PieceColor::None => bail!("piece has no color"),
+        }
+    }
+}
+
+impl Not for Side {
+    type Output = Side;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Side::White => Side::Black,
+            Side::Black => Side::White,
         }
     }
 }
@@ -321,10 +332,6 @@ impl Board {
             Side::White => &mut self.white_occupancies,
             Side::Black => &mut self.black_occupancies,
         }
-    }
-
-    pub fn is_square_attacked(&self, f1: Square) -> bool {
-        todo!()
     }
 }
 
