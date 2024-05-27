@@ -13,7 +13,10 @@ impl Board {
 
         match mv.kind() {
             MoveKind::Quiet => self.add_piece(moved_piece, mv.to_square())?,
-            MoveKind::Capture => todo!(),
+            MoveKind::Capture => {
+                self.remove_piece(mv.to_square())?;
+                self.add_piece(moved_piece, mv.to_square())?;
+            }
             MoveKind::Castle => todo!(),
             MoveKind::Promotion => todo!(),
         };

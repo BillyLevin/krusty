@@ -1,6 +1,7 @@
 use krusty::{
     board::Board,
-    move_generator::{MoveGenerator, MoveList},
+    move_generator::{Move, MoveFlag, MoveKind},
+    square::Square,
 };
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -16,14 +17,30 @@ fn main() -> anyhow::Result<()> {
     board.parse_fen(START_POSITION_FEN)?;
     println!("{}", board);
 
-    let mg = MoveGenerator::default();
-    let mut move_list = MoveList::default();
+    board.make_move(Move::new(
+        Square::E2,
+        Square::E4,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?;
 
-    mg.generate_all_moves(&board, &mut move_list)?;
+    println!("{}", board);
 
-    dbg!(move_list);
+    board.make_move(Move::new(
+        Square::D7,
+        Square::D5,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?;
 
-    board.make_move(move_list.get(0))?;
+    println!("{}", board);
+
+    board.make_move(Move::new(
+        Square::E4,
+        Square::D5,
+        MoveKind::Capture,
+        MoveFlag::None,
+    ))?;
 
     println!("{}", board);
 
