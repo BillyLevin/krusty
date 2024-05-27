@@ -9,6 +9,7 @@ impl Board {
         let moved_piece = self.remove_piece(from_square)?;
 
         self.switch_side();
+        self.increment_clock();
 
         match mv.kind() {
             MoveKind::Quiet => self.add_piece(moved_piece, mv.to_square())?,

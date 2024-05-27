@@ -75,7 +75,9 @@ pub struct Board {
     white_occupancies: Bitboard,
     black_occupancies: Bitboard,
 
-    pub side: Side,
+    side: Side,
+
+    halfmove_clock: usize,
 
     castling_rights: CastlingRights,
 
@@ -120,6 +122,8 @@ impl Default for Board {
 
             side: Side::White,
             castling_rights: 0,
+
+            halfmove_clock: 0,
 
             en_passant_square: Square::None,
         }
@@ -271,9 +275,9 @@ impl Board {
 
         self.en_passant_square = en_passant_square;
 
-        // TODO: more stuff
-        // let halfmove_clock = fields.get(4).unwrap();
-        // let move_count = fields.get(5).unwrap();
+        let halfmove_clock = fields.get(4).unwrap();
+
+        self.halfmove_clock = halfmove_clock.parse()?;
 
         Ok(())
     }
@@ -295,6 +299,14 @@ impl Board {
             Side::White => Side::Black,
             Side::Black => Side::White,
         };
+    }
+
+    pub fn increment_clock(&mut self) {
+        self.halfmove_clock += 1;
+    }
+
+    pub fn decrement_clock(&mut self) {
+        self.halfmove_clock -= 1;
     }
 
     pub fn occupancy(&self, side: Side) -> Bitboard {
@@ -379,6 +391,8 @@ fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Resu
             "no"
         }
     )?;
+
+    writeln!(f, "Halfmove clock: {:?}", board.halfmove_clock)?;
 
     writeln!(f, "En passant square: {:?}", board.en_passant_square)?;
 
