@@ -597,6 +597,47 @@ impl MoveGenerator {
         Ok(())
     }
 
+    pub fn generate_bishop_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut bishops =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Bishop))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while bishops != EMPTY_BB {
+            let from_square = bishops.pop_bit();
+
+            let magic = BISHOP_MAGICS[from_square.index()];
+
+            let occupancies = current_side_occupancy | enemy_occupancy;
+
+            let possible_attacks = self.bishop_attacks[magic.get_magic_index(occupancies)];
+
+            let mut rook_moves = possible_attacks & !current_side_occupancy;
+
+            while rook_moves != EMPTY_BB {
+                let to_square = rook_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                let move_kind = if is_capture {
+                    MoveKind::Capture
+                } else {
+                    MoveKind::Quiet
+                };
+
+                move_list.push(Move::new(from_square, to_square, move_kind, MoveFlag::None));
+            }
+        }
+        Ok(())
+    }
+
     fn pawn_pushes(side: Side) -> [Bitboard; 64] {
         match side {
             Side::White => Self::WHITE_PAWN_PUSHES,
