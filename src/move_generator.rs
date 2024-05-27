@@ -419,11 +419,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_pawn_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_pawn_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let empty = board.empty_squares();
         let pawn_pushes = Self::pawn_pushes(board.side_to_move());
         let mut pawns =
@@ -498,11 +494,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_knight_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_knight_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let mut knights =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Knight))?;
 
@@ -535,11 +527,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_king_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_king_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let mut king =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::King))?;
 
@@ -571,11 +559,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_rook_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_rook_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let mut rooks =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Rook))?;
 
@@ -612,11 +596,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_bishop_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_bishop_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let mut bishops =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Bishop))?;
 
@@ -653,11 +633,7 @@ impl MoveGenerator {
         Ok(())
     }
 
-    pub fn generate_queen_moves(
-        &self,
-        board: &Board,
-        move_list: &mut MoveList,
-    ) -> anyhow::Result<()> {
+    fn generate_queen_moves(&self, board: &Board, move_list: &mut MoveList) -> anyhow::Result<()> {
         let mut queens =
             board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Queen))?;
 
