@@ -23,5 +23,9 @@ fn main() -> anyhow::Result<()> {
 
     dbg!(move_list);
 
+    board.make_move(move_list.get(0))?;
+
+    println!("{}", board);
+
     Ok(())
 }

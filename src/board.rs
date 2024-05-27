@@ -171,7 +171,7 @@ impl Board {
         Ok(())
     }
 
-    pub fn remove_piece(&mut self, square: Square) -> anyhow::Result<()> {
+    pub fn remove_piece(&mut self, square: Square) -> anyhow::Result<Piece> {
         let piece = self.pieces[square];
 
         match piece.kind {
@@ -181,7 +181,7 @@ impl Board {
                 self.occupancy_mut(piece.color.try_into()?)
                     .clear_bit(square);
                 self.pieces[square] = Piece::default();
-                Ok(())
+                Ok(piece)
             }
         }
     }

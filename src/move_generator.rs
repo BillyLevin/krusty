@@ -113,6 +113,10 @@ impl MoveList {
         self.moves[self.count] = mv;
         self.count += 1;
     }
+
+    pub fn get(&self, index: usize) -> Move {
+        self.moves[index]
+    }
 }
 
 impl Default for MoveList {
