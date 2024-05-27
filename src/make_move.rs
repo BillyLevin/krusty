@@ -2,8 +2,8 @@ use anyhow::bail;
 
 use crate::{
     board::Board,
-    move_generator::{Move, MoveKind},
-    square::Square,
+    move_generator::{Move, MoveFlag, MoveKind},
+    square::{Piece, PieceKind, Square},
 };
 
 impl Board {
@@ -11,7 +11,6 @@ impl Board {
         let from_square = mv.from_square();
         let moved_piece = self.remove_piece(from_square)?;
 
-        self.switch_side();
         self.increment_clock();
 
         match mv.kind() {
@@ -33,8 +32,32 @@ impl Board {
                 let rook = self.remove_piece(rook_from)?;
                 self.add_piece(rook, rook_to)?;
             }
-            MoveKind::Promotion => todo!(),
+            MoveKind::Promotion => {
+                if self.get_piece(mv.to_square()).kind != PieceKind::NoPiece {
+                    self.remove_piece(mv.to_square())?;
+                }
+
+                let promotion_piece = match mv.flag() {
+                    MoveFlag::KnightPromotion => {
+                        Piece::new(self.side_to_move().into(), PieceKind::Knight)
+                    }
+                    MoveFlag::BishopPromotion => {
+                        Piece::new(self.side_to_move().into(), PieceKind::Bishop)
+                    }
+                    MoveFlag::RookPromotion => {
+                        Piece::new(self.side_to_move().into(), PieceKind::Rook)
+                    }
+                    MoveFlag::QueenPromotion => {
+                        Piece::new(self.side_to_move().into(), PieceKind::Queen)
+                    }
+                    _ => bail!("tried to make promotion move without providing a promotion flag"),
+                };
+
+                self.add_piece(promotion_piece, mv.to_square())?;
+            }
         };
+
+        self.switch_side();
 
         Ok(())
     }
