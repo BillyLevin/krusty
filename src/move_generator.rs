@@ -404,6 +404,21 @@ impl MoveGenerator {
     const RANK_4_MASK: Bitboard = Bitboard(4278190080u64);
     const RANK_5_MASK: Bitboard = Bitboard(1095216660480u64);
 
+    pub fn generate_all_moves(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        self.generate_pawn_moves(board, move_list)?;
+        self.generate_king_moves(board, move_list)?;
+        self.generate_knight_moves(board, move_list)?;
+        self.generate_bishop_moves(board, move_list)?;
+        self.generate_rook_moves(board, move_list)?;
+        self.generate_queen_moves(board, move_list)?;
+
+        Ok(())
+    }
+
     pub fn generate_pawn_moves(
         &self,
         board: &Board,

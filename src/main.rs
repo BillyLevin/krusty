@@ -13,13 +13,13 @@ const QUEEN_MOVES_FEN: &str = "6k1/7P/4nq2/8/1nQ5/5N2/1N6/6K1 b - - 0 1";
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
-    board.parse_fen(QUEEN_MOVES_FEN)?;
+    board.parse_fen(START_POSITION_FEN)?;
     println!("{}", board);
 
     let mg = MoveGenerator::default();
     let mut move_list = MoveList::default();
 
-    mg.generate_queen_moves(&board, &mut move_list)?;
+    mg.generate_all_moves(&board, &mut move_list)?;
 
     dbg!(move_list);
 
