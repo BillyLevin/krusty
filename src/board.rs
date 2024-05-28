@@ -297,6 +297,14 @@ impl Board {
         self.castling_rights & (castling_kind as u8) != 0
     }
 
+    pub fn castling_rights(&self) -> u8 {
+        self.castling_rights
+    }
+
+    pub fn set_castling_rights(&mut self, rights: u8) {
+        self.castling_rights = rights;
+    }
+
     pub fn empty_squares(&self) -> Bitboard {
         !(self.occupancy(Side::White) | self.occupancy(Side::Black))
     }

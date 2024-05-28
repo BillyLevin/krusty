@@ -2,14 +2,47 @@ use anyhow::bail;
 
 use crate::{
     bitboard::EMPTY_BB,
-    board::{Board, Side},
+    board::{Board, CastlingKind, Side},
     move_generator::{pawn_attacks, Move, MoveFlag, MoveKind},
     square::{Piece, PieceKind, Square},
 };
 
+const fn init_castling_permissions_table() -> [u8; 64] {
+    let mut table = [15; 64];
+
+    let white_queen = CastlingKind::WhiteQueen as u8;
+    let white_king = CastlingKind::WhiteKing as u8;
+    let black_queen = CastlingKind::BlackQueen as u8;
+    let black_king = CastlingKind::BlackKing as u8;
+
+    table[Square::A1 as usize] = 15 - white_queen;
+    table[Square::E1 as usize] = 15 - white_queen - white_king;
+    table[Square::H1 as usize] = 15 - white_king;
+
+    table[Square::A8 as usize] = 15 - black_queen;
+    table[Square::E8 as usize] = 15 - black_queen - black_king;
+    table[Square::H8 as usize] = 15 - black_king;
+
+    table
+}
+
+/// this table allows us to update the castling rights after each move is made
+/// each castling permission is represented by its own bit in a 4-bit int (see `CastlingKind` def)
+///
+/// the values in this table represent what the new castling rights would be after removing the
+/// relevant rights (assuming you started with full rights)
+///
+/// as an example, if the rook on A1 moves or is captured, white can no longer castle queenside, so
+/// we subtract the value of that right from 15 (0b1111)
+///
+/// in practice, the value of this table will be bitwise AND'd with the current castling rights to
+/// get the updated rights
+const CASTLING_PERMISSIONS_TABLE: [u8; 64] = init_castling_permissions_table();
+
 impl Board {
     pub fn make_move(&mut self, mv: Move) -> anyhow::Result<()> {
         let from_square = mv.from_square();
+        let to_square = mv.to_square();
         let moved_piece = self.remove_piece(from_square)?;
 
         self.increment_clock();
@@ -17,7 +50,7 @@ impl Board {
         self.set_en_passant_square(Square::None);
 
         match mv.kind() {
-            MoveKind::Quiet => self.add_piece(moved_piece, mv.to_square())?,
+            MoveKind::Quiet => self.add_piece(moved_piece, to_square)?,
             MoveKind::Capture => {
                 // captures (and pawn pushes, handled lower down) reset halfmove clock for 50-move
                 // rule
@@ -25,33 +58,33 @@ impl Board {
 
                 if mv.flag() == MoveFlag::EnPassant {
                     let captured_square = match self.side_to_move() {
-                        Side::White => mv.to_square().south(),
-                        Side::Black => mv.to_square().north(),
+                        Side::White => to_square.south(),
+                        Side::Black => to_square.north(),
                     };
 
                     self.remove_piece(captured_square)?;
-                    self.add_piece(moved_piece, mv.to_square())?;
+                    self.add_piece(moved_piece, to_square)?;
                 } else {
-                    self.remove_piece(mv.to_square())?;
-                    self.add_piece(moved_piece, mv.to_square())?;
+                    self.remove_piece(to_square)?;
+                    self.add_piece(moved_piece, to_square)?;
                 }
             }
             MoveKind::Castle => {
-                self.add_piece(moved_piece, mv.to_square())?;
+                self.add_piece(moved_piece, to_square)?;
 
-                let (rook_from, rook_to) = match mv.to_square() {
+                let (rook_from, rook_to) = match to_square {
                     Square::G1 => (Square::H1, Square::F1),
                     Square::C1 => (Square::A1, Square::D1),
                     Square::G8 => (Square::H8, Square::F8),
                     Square::C8 => (Square::A8, Square::D8),
-                    _ => bail!("tried to castle to illegal square: {:?}", mv.to_square()),
+                    _ => bail!("tried to castle to illegal square: {:?}", to_square),
                 };
                 let rook = self.remove_piece(rook_from)?;
                 self.add_piece(rook, rook_to)?;
             }
             MoveKind::Promotion => {
-                if self.get_piece(mv.to_square()).kind != PieceKind::NoPiece {
-                    self.remove_piece(mv.to_square())?;
+                if self.get_piece(to_square).kind != PieceKind::NoPiece {
+                    self.remove_piece(to_square)?;
                 }
 
                 let promotion_piece = match mv.flag() {
@@ -70,19 +103,19 @@ impl Board {
                     _ => bail!("tried to make promotion move without providing a promotion flag"),
                 };
 
-                self.add_piece(promotion_piece, mv.to_square())?;
+                self.add_piece(promotion_piece, to_square)?;
             }
         };
 
         if moved_piece.kind == PieceKind::Pawn {
             self.reset_clock();
 
-            let is_double_push = mv.from_square().distance_between(mv.to_square()) == 16;
+            let is_double_push = from_square.distance_between(to_square) == 16;
 
             if is_double_push {
                 let ep_square = match self.side_to_move() {
-                    Side::White => mv.from_square().north(),
-                    Side::Black => mv.from_square().south(),
+                    Side::White => from_square.north(),
+                    Side::Black => from_square.south(),
                 };
 
                 // we only set en passant square if a pawn can actually capture, as per
@@ -97,6 +130,11 @@ impl Board {
                 }
             }
         }
+
+        let new_castling_rights = self.castling_rights()
+            & CASTLING_PERMISSIONS_TABLE[from_square.index()]
+            & CASTLING_PERMISSIONS_TABLE[to_square.index()];
+        self.set_castling_rights(new_castling_rights);
 
         self.switch_side();
 

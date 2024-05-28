@@ -44,5 +44,14 @@ fn main() -> anyhow::Result<()> {
 
     println!("{}", board);
 
+    board.make_move(Move::new(
+        Square::E8,
+        Square::D7,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?;
+
+    println!("{}", board);
+
     Ok(())
 }
