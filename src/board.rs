@@ -8,6 +8,7 @@ use colored::Colorize;
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
+    move_generator::MoveGenerator,
     square::{File, Piece, PieceColor, PieceKind, Rank, Square},
 };
 
@@ -93,6 +94,8 @@ pub struct Board {
     castling_rights: CastlingRights,
 
     en_passant_square: Square,
+
+    move_generator: MoveGenerator,
 }
 
 impl Index<Square> for BoardPieces {
@@ -137,6 +140,8 @@ impl Default for Board {
             halfmove_clock: 0,
 
             en_passant_square: Square::None,
+
+            move_generator: MoveGenerator::default(),
         }
     }
 }
@@ -352,6 +357,19 @@ impl Board {
 
     pub fn set_en_passant_square(&mut self, square: Square) {
         self.en_passant_square = square;
+    }
+
+    fn get_king_square(&self, side: Side) -> Square {
+        let king_bitboard = self
+            .get_piece_bb(Piece::new(side.into(), PieceKind::King))
+            .unwrap();
+
+        king_bitboard.0.trailing_zeros().into()
+    }
+
+    pub fn is_in_check(&self, side: Side) -> bool {
+        self.move_generator
+            .is_square_attacked(self, self.get_king_square(side), (!side).into())
     }
 }
 

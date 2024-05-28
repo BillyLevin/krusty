@@ -1,6 +1,6 @@
 use krusty::{
     board::Board,
-    move_generator::{Move, MoveFlag, MoveGenerator, MoveKind, MoveList},
+    move_generator::{Move, MoveFlag, MoveKind},
     square::Square,
 };
 
@@ -19,37 +19,49 @@ fn main() -> anyhow::Result<()> {
     board.parse_fen("rnbqkbnr/ppppppp1/7p/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2")?;
     println!("{}", board);
 
-    // let mg = MoveGenerator::default();
-    // let mut move_list = MoveList::default();
-    //
-    // mg.generate_all_moves(&board, &mut move_list)?;
-    //
-    // dbg!(move_list);
-
-    board.make_move(Move::new(
+    dbg!(board.make_move(Move::new(
         Square::D7,
         Square::D5,
         MoveKind::Quiet,
         MoveFlag::None,
-    ))?;
+    ))?);
 
     println!("{}", board);
 
-    board.make_move(Move::new(
+    dbg!(board.make_move(Move::new(
         Square::E5,
         Square::D6,
         MoveKind::Capture,
         MoveFlag::EnPassant,
-    ))?;
+    ))?);
 
     println!("{}", board);
 
-    board.make_move(Move::new(
+    dbg!(board.make_move(Move::new(
         Square::E8,
         Square::D7,
         MoveKind::Quiet,
         MoveFlag::None,
-    ))?;
+    ))?);
+
+    println!("{}", board);
+
+    dbg!(board.make_move(Move::new(
+        Square::D1,
+        Square::G4,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?);
+
+    println!("{}", board);
+
+    // king left in check - should return false
+    dbg!(board.make_move(Move::new(
+        Square::A7,
+        Square::A6,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?);
 
     println!("{}", board);
 

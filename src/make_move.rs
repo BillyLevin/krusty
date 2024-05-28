@@ -40,7 +40,7 @@ const fn init_castling_permissions_table() -> [u8; 64] {
 const CASTLING_PERMISSIONS_TABLE: [u8; 64] = init_castling_permissions_table();
 
 impl Board {
-    pub fn make_move(&mut self, mv: Move) -> anyhow::Result<()> {
+    pub fn make_move(&mut self, mv: Move) -> anyhow::Result<bool> {
         let from_square = mv.from_square();
         let to_square = mv.to_square();
         let moved_piece = self.remove_piece(from_square)?;
@@ -138,6 +138,9 @@ impl Board {
 
         self.switch_side();
 
-        Ok(())
+        // we return `true` if the move was legal, `false` if not
+        // not that we just switched the side to the next player, so we pass the opposite side into
+        // this function
+        Ok(!self.is_in_check(!self.side_to_move()))
     }
 }
