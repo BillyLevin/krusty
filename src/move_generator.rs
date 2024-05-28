@@ -27,7 +27,7 @@ impl From<u32> for MoveKind {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MoveFlag {
     None = 0b000,
     EnPassant = 0b001,
@@ -393,18 +393,25 @@ fn init_bishop_attacks() -> Vec<Bitboard> {
     bishop_attacks
 }
 
+// maps the `from` square to the `to` square when pushing a pawn
+pub const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
+pub const BLACK_PAWN_PUSHES: [Bitboard; 64] = init_black_pawn_pushes();
+
+pub const WHITE_PAWN_ATTACKS: [Bitboard; 64] = init_white_pawn_attacks();
+pub const BLACK_PAWN_ATTACKS: [Bitboard; 64] = init_black_pawn_attacks();
+
+pub const KNIGHT_ATTACKS: [Bitboard; 64] = init_knight_attacks();
+
+pub const KING_ATTACKS: [Bitboard; 64] = init_king_attacks();
+
+pub fn pawn_attacks(side: Side) -> [Bitboard; 64] {
+    match side {
+        Side::White => WHITE_PAWN_ATTACKS,
+        Side::Black => BLACK_PAWN_ATTACKS,
+    }
+}
+
 impl MoveGenerator {
-    // maps the `from` square to the `to` square when pushing a pawn
-    const WHITE_PAWN_PUSHES: [Bitboard; 64] = init_white_pawn_pushes();
-    const BLACK_PAWN_PUSHES: [Bitboard; 64] = init_black_pawn_pushes();
-
-    const WHITE_PAWN_ATTACKS: [Bitboard; 64] = init_white_pawn_attacks();
-    const BLACK_PAWN_ATTACKS: [Bitboard; 64] = init_black_pawn_attacks();
-
-    const KNIGHT_ATTACKS: [Bitboard; 64] = init_knight_attacks();
-
-    const KING_ATTACKS: [Bitboard; 64] = init_king_attacks();
-
     const RANK_4_MASK: Bitboard = Bitboard(4278190080u64);
     const RANK_5_MASK: Bitboard = Bitboard(1095216660480u64);
 
@@ -465,7 +472,7 @@ impl MoveGenerator {
                 ));
             }
 
-            let en_passant_bb = match board.en_passant_square {
+            let en_passant_bb = match board.en_passant_square() {
                 Square::None => EMPTY_BB,
                 square => square.bitboard(),
             };
@@ -476,7 +483,7 @@ impl MoveGenerator {
             };
 
             let enemy = board.occupancy(enemy_side) | en_passant_bb;
-            let pawn_attack_mask = Self::pawn_attacks(board.side_to_move())[from_square.index()];
+            let pawn_attack_mask = pawn_attacks(board.side_to_move())[from_square.index()];
 
             let mut attacks = pawn_attack_mask & enemy;
 
@@ -486,11 +493,17 @@ impl MoveGenerator {
                 if Self::is_promotion(board.side_to_move(), attacked_square)? {
                     Self::push_all_promotions(move_list, from_square, attacked_square);
                 } else {
+                    let flag = if attacked_square == board.en_passant_square() {
+                        MoveFlag::EnPassant
+                    } else {
+                        MoveFlag::None
+                    };
+
                     move_list.push(Move::new(
                         from_square,
                         attacked_square,
                         MoveKind::Capture,
-                        MoveFlag::None,
+                        flag,
                     ));
                 }
             }
@@ -511,7 +524,7 @@ impl MoveGenerator {
         while knights != EMPTY_BB {
             let from_square = knights.pop_bit();
 
-            let possible_attacks = Self::KNIGHT_ATTACKS[from_square.index()];
+            let possible_attacks = KNIGHT_ATTACKS[from_square.index()];
 
             let mut knight_moves = possible_attacks & !current_side_occupancy;
 
@@ -543,7 +556,7 @@ impl MoveGenerator {
 
         let from_square = king.pop_bit();
 
-        let possible_attacks = Self::KING_ATTACKS[from_square.index()];
+        let possible_attacks = KING_ATTACKS[from_square.index()];
 
         let mut king_moves = possible_attacks & !current_side_occupancy;
 
@@ -750,15 +763,8 @@ impl MoveGenerator {
 
     fn pawn_pushes(side: Side) -> [Bitboard; 64] {
         match side {
-            Side::White => Self::WHITE_PAWN_PUSHES,
-            Side::Black => Self::BLACK_PAWN_PUSHES,
-        }
-    }
-
-    fn pawn_attacks(side: Side) -> [Bitboard; 64] {
-        match side {
-            Side::White => Self::WHITE_PAWN_ATTACKS,
-            Side::Black => Self::BLACK_PAWN_ATTACKS,
+            Side::White => WHITE_PAWN_PUSHES,
+            Side::Black => BLACK_PAWN_PUSHES,
         }
     }
 
@@ -801,7 +807,7 @@ impl MoveGenerator {
             .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Pawn))
             .unwrap();
 
-        if Self::pawn_attacks(!attacker_side)[square.index()] & pawns != EMPTY_BB {
+        if pawn_attacks(!attacker_side)[square.index()] & pawns != EMPTY_BB {
             return true;
         }
 
@@ -809,7 +815,7 @@ impl MoveGenerator {
             .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::King))
             .unwrap();
 
-        if Self::KING_ATTACKS[square.index()] & king != EMPTY_BB {
+        if KING_ATTACKS[square.index()] & king != EMPTY_BB {
             return true;
         }
 
@@ -817,7 +823,7 @@ impl MoveGenerator {
             .get_piece_bb(Piece::new(attacker_side.into(), PieceKind::Knight))
             .unwrap();
 
-        if Self::KNIGHT_ATTACKS[square.index()] & knights != EMPTY_BB {
+        if KNIGHT_ATTACKS[square.index()] & knights != EMPTY_BB {
             return true;
         }
 

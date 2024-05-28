@@ -1,8 +1,9 @@
 use anyhow::bail;
 
 use crate::{
-    board::Board,
-    move_generator::{Move, MoveFlag, MoveKind},
+    bitboard::EMPTY_BB,
+    board::{Board, Side},
+    move_generator::{pawn_attacks, Move, MoveFlag, MoveKind},
     square::{Piece, PieceKind, Square},
 };
 
@@ -13,11 +14,27 @@ impl Board {
 
         self.increment_clock();
 
+        self.set_en_passant_square(Square::None);
+
         match mv.kind() {
             MoveKind::Quiet => self.add_piece(moved_piece, mv.to_square())?,
             MoveKind::Capture => {
-                self.remove_piece(mv.to_square())?;
-                self.add_piece(moved_piece, mv.to_square())?;
+                // captures (and pawn pushes, handled lower down) reset halfmove clock for 50-move
+                // rule
+                self.reset_clock();
+
+                if mv.flag() == MoveFlag::EnPassant {
+                    let captured_square = match self.side_to_move() {
+                        Side::White => mv.to_square().south(),
+                        Side::Black => mv.to_square().north(),
+                    };
+
+                    self.remove_piece(captured_square)?;
+                    self.add_piece(moved_piece, mv.to_square())?;
+                } else {
+                    self.remove_piece(mv.to_square())?;
+                    self.add_piece(moved_piece, mv.to_square())?;
+                }
             }
             MoveKind::Castle => {
                 self.add_piece(moved_piece, mv.to_square())?;
@@ -56,6 +73,30 @@ impl Board {
                 self.add_piece(promotion_piece, mv.to_square())?;
             }
         };
+
+        if moved_piece.kind == PieceKind::Pawn {
+            self.reset_clock();
+
+            let is_double_push = mv.from_square().distance_between(mv.to_square()) == 16;
+
+            if is_double_push {
+                let ep_square = match self.side_to_move() {
+                    Side::White => mv.from_square().north(),
+                    Side::Black => mv.from_square().south(),
+                };
+
+                // we only set en passant square if a pawn can actually capture, as per
+                // https://github.com/fsmosca/PGN-Standard/blob/61a82dab3ff62d79dea82c15a8cc773f80f3a91e/PGN-Standard.txt#L2231-L2242
+                let enemy_pawns =
+                    self.get_piece_bb(Piece::new((!self.side_to_move()).into(), PieceKind::Pawn))?;
+
+                let attacks = pawn_attacks(self.side_to_move())[ep_square.index()];
+
+                if attacks & enemy_pawns != EMPTY_BB {
+                    self.set_en_passant_square(ep_square);
+                }
+            }
+        }
 
         self.switch_side();
 

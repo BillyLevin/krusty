@@ -13,7 +13,7 @@ use crate::{
 
 macro_rules! define_squares {
     ($($square_name:ident),*) => {
-        #[derive(Debug, Clone, Copy)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub enum Square {
             $($square_name),*, None
         }
@@ -154,6 +154,21 @@ impl Square {
 
     pub fn rank(&self) -> anyhow::Result<Rank> {
         self.try_into()
+    }
+
+    pub fn north(&self) -> Self {
+        (self.index() + 8).into()
+    }
+
+    pub fn south(&self) -> Self {
+        (self.index() - 8).into()
+    }
+
+    pub fn distance_between(&self, other_square: Square) -> u32 {
+        let index1 = self.index() as i32;
+        let index2 = other_square.index() as i32;
+
+        (index1).abs_diff(index2)
     }
 }
 

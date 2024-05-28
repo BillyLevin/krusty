@@ -16,7 +16,7 @@ const PAWNS_FEN: &str = "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
-    board.parse_fen(PAWNS_FEN)?;
+    board.parse_fen("rnbqkbnr/ppppppp1/7p/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2")?;
     println!("{}", board);
 
     // let mg = MoveGenerator::default();
@@ -27,10 +27,19 @@ fn main() -> anyhow::Result<()> {
     // dbg!(move_list);
 
     board.make_move(Move::new(
-        Square::G7,
-        Square::G8,
-        MoveKind::Promotion,
-        MoveFlag::QueenPromotion,
+        Square::D7,
+        Square::D5,
+        MoveKind::Quiet,
+        MoveFlag::None,
+    ))?;
+
+    println!("{}", board);
+
+    board.make_move(Move::new(
+        Square::E5,
+        Square::D6,
+        MoveKind::Capture,
+        MoveFlag::EnPassant,
     ))?;
 
     println!("{}", board);

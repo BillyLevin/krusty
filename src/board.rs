@@ -92,7 +92,7 @@ pub struct Board {
 
     castling_rights: CastlingRights,
 
-    pub en_passant_square: Square,
+    en_passant_square: Square,
 }
 
 impl Index<Square> for BoardPieces {
@@ -312,6 +312,10 @@ impl Board {
         };
     }
 
+    pub fn reset_clock(&mut self) {
+        self.halfmove_clock = 0;
+    }
+
     pub fn increment_clock(&mut self) {
         self.halfmove_clock += 1;
     }
@@ -332,6 +336,14 @@ impl Board {
             Side::White => &mut self.white_occupancies,
             Side::Black => &mut self.black_occupancies,
         }
+    }
+
+    pub fn en_passant_square(&self) -> Square {
+        self.en_passant_square
+    }
+
+    pub fn set_en_passant_square(&mut self, square: Square) {
+        self.en_passant_square = square;
     }
 }
 
