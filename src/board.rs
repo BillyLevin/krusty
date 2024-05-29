@@ -67,6 +67,14 @@ impl TryFrom<char> for CastlingKind {
     }
 }
 
+pub struct HistoryItem {
+    pub castling_rights: CastlingRights,
+    pub en_passant_square: Square,
+    pub halfmove_clock: usize,
+    pub moved_piece: Piece,
+    pub captured_piece: Piece,
+}
+
 pub struct Board {
     white_pawns: Bitboard,
     white_knights: Bitboard,
@@ -94,6 +102,8 @@ pub struct Board {
     castling_rights: CastlingRights,
 
     en_passant_square: Square,
+
+    history: Vec<HistoryItem>,
 
     move_generator: MoveGenerator,
 }
@@ -140,6 +150,8 @@ impl Default for Board {
             halfmove_clock: 0,
 
             en_passant_square: Square::None,
+
+            history: Vec::new(),
 
             move_generator: MoveGenerator::default(),
         }
@@ -359,6 +371,10 @@ impl Board {
         self.en_passant_square = square;
     }
 
+    pub fn halfmove_clock(&self) -> usize {
+        self.halfmove_clock
+    }
+
     fn get_king_square(&self, side: Side) -> Square {
         let king_bitboard = self
             .get_piece_bb(Piece::new(side.into(), PieceKind::King))
@@ -369,7 +385,11 @@ impl Board {
 
     pub fn is_in_check(&self, side: Side) -> bool {
         self.move_generator
-            .is_square_attacked(self, self.get_king_square(side), (!side).into())
+            .is_square_attacked(self, self.get_king_square(side), !side)
+    }
+
+    pub fn push_history(&mut self, history_item: HistoryItem) {
+        self.history.push(history_item);
     }
 }
 

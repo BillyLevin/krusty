@@ -2,7 +2,7 @@ use anyhow::bail;
 
 use crate::{
     bitboard::EMPTY_BB,
-    board::{Board, CastlingKind, Side},
+    board::{Board, CastlingKind, HistoryItem, Side},
     move_generator::{pawn_attacks, Move, MoveFlag, MoveKind},
     square::{Piece, PieceKind, Square},
 };
@@ -45,6 +45,14 @@ impl Board {
         let to_square = mv.to_square();
         let moved_piece = self.remove_piece(from_square)?;
 
+        let mut history_item = HistoryItem {
+            castling_rights: self.castling_rights(),
+            en_passant_square: self.en_passant_square(),
+            halfmove_clock: self.halfmove_clock(),
+            moved_piece,
+            captured_piece: self.get_piece(to_square),
+        };
+
         self.increment_clock();
 
         self.set_en_passant_square(Square::None);
@@ -62,7 +70,7 @@ impl Board {
                         Side::Black => to_square.north(),
                     };
 
-                    self.remove_piece(captured_square)?;
+                    history_item.captured_piece = self.remove_piece(captured_square)?;
                     self.add_piece(moved_piece, to_square)?;
                 } else {
                     self.remove_piece(to_square)?;
@@ -137,6 +145,8 @@ impl Board {
         self.set_castling_rights(new_castling_rights);
 
         self.switch_side();
+
+        self.push_history(history_item);
 
         // we return `true` if the move was legal, `false` if not
         // not that we just switched the side to the next player, so we pass the opposite side into
