@@ -153,4 +153,63 @@ impl Board {
         // this function
         Ok(!self.is_in_check(!self.side_to_move()))
     }
+
+    pub fn unmake_move(&mut self, mv: Move) -> anyhow::Result<()> {
+        let history_item: HistoryItem = self.pop_history();
+
+        self.set_castling_rights(history_item.castling_rights);
+        self.set_en_passant_square(history_item.en_passant_square);
+        self.set_halfmove_clock(history_item.halfmove_clock);
+
+        self.switch_side();
+
+        let from_square = mv.from_square();
+        let to_square = mv.to_square();
+
+        self.add_piece(history_item.moved_piece, from_square)?;
+
+        match mv.kind() {
+            MoveKind::Quiet => {
+                self.remove_piece(to_square)?;
+            }
+            MoveKind::Capture => {
+                if mv.flag() == MoveFlag::EnPassant {
+                    let captured_square = match self.side_to_move() {
+                        Side::White => to_square.south(),
+                        Side::Black => to_square.north(),
+                    };
+
+                    self.remove_piece(to_square)?;
+                    self.add_piece(history_item.captured_piece, captured_square)?;
+                } else {
+                    self.remove_piece(to_square)?;
+                    self.add_piece(history_item.captured_piece, to_square)?;
+                }
+            }
+            MoveKind::Castle => {
+                // remove the king
+                self.remove_piece(to_square)?;
+
+                // put the rook back to its original square
+                let (rook_from, rook_to) = match to_square {
+                    Square::G1 => (Square::H1, Square::F1),
+                    Square::C1 => (Square::A1, Square::D1),
+                    Square::G8 => (Square::H8, Square::F8),
+                    Square::C8 => (Square::A8, Square::D8),
+                    _ => bail!(
+                        "tried to unmake illegal castling move with `to_square`: {:?}",
+                        to_square
+                    ),
+                };
+                let rook = self.remove_piece(rook_to)?;
+                self.add_piece(rook, rook_from)?;
+            }
+            MoveKind::Promotion => {
+                self.remove_piece(to_square)?;
+                self.add_piece(history_item.captured_piece, to_square)?;
+            }
+        };
+
+        Ok(())
+    }
 }

@@ -16,53 +16,15 @@ const PAWNS_FEN: &str = "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
-    board.parse_fen("rnbqkbnr/ppppppp1/7p/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2")?;
+    board.parse_fen(CASTLING_FEN)?;
     println!("{}", board);
 
-    dbg!(board.make_move(Move::new(
-        Square::D7,
-        Square::D5,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?);
+    let castle_move = Move::new(Square::E1, Square::G1, MoveKind::Castle, MoveFlag::None);
 
+    board.make_move(castle_move)?;
     println!("{}", board);
 
-    dbg!(board.make_move(Move::new(
-        Square::E5,
-        Square::D6,
-        MoveKind::Capture,
-        MoveFlag::EnPassant,
-    ))?);
-
-    println!("{}", board);
-
-    dbg!(board.make_move(Move::new(
-        Square::E8,
-        Square::D7,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?);
-
-    println!("{}", board);
-
-    dbg!(board.make_move(Move::new(
-        Square::D1,
-        Square::G4,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?);
-
-    println!("{}", board);
-
-    // king left in check - should return false
-    dbg!(board.make_move(Move::new(
-        Square::A7,
-        Square::A6,
-        MoveKind::Quiet,
-        MoveFlag::None,
-    ))?);
-
+    board.unmake_move(castle_move)?;
     println!("{}", board);
 
     Ok(())

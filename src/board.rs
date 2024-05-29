@@ -345,10 +345,6 @@ impl Board {
         self.halfmove_clock += 1;
     }
 
-    pub fn decrement_clock(&mut self) {
-        self.halfmove_clock -= 1;
-    }
-
     pub fn occupancy(&self, side: Side) -> Bitboard {
         match side {
             Side::White => self.white_occupancies,
@@ -375,6 +371,10 @@ impl Board {
         self.halfmove_clock
     }
 
+    pub fn set_halfmove_clock(&mut self, halfmove_clock: usize) {
+        self.halfmove_clock = halfmove_clock;
+    }
+
     fn get_king_square(&self, side: Side) -> Square {
         let king_bitboard = self
             .get_piece_bb(Piece::new(side.into(), PieceKind::King))
@@ -390,6 +390,10 @@ impl Board {
 
     pub fn push_history(&mut self, history_item: HistoryItem) {
         self.history.push(history_item);
+    }
+
+    pub fn pop_history(&mut self) -> HistoryItem {
+        self.history.pop().unwrap()
     }
 }
 
