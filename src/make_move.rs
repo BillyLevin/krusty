@@ -206,7 +206,9 @@ impl Board {
             }
             MoveKind::Promotion => {
                 self.remove_piece(to_square)?;
-                self.add_piece(history_item.captured_piece, to_square)?;
+                if history_item.captured_piece.kind != PieceKind::NoPiece {
+                    self.add_piece(history_item.captured_piece, to_square)?;
+                }
             }
         };
 

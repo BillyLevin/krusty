@@ -15,10 +15,10 @@ struct Test {
 pub fn run_perft_tests(tests: &str) {
     let tests: Vec<_> = tests.lines().map(parse_perft_string).collect();
 
-    let mut board = Board::default();
-
     for position in tests {
         let position = position.unwrap();
+
+        let mut board = Board::default();
         board.parse_fen(position.fen).unwrap();
 
         for test in position.tests {
