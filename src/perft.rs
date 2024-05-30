@@ -23,7 +23,7 @@ pub fn run_perft_tests(tests: &str) {
 
         for test in position.tests {
             let result = perft(&mut board, test.depth).unwrap();
-            println!("{result}");
+            assert_eq!(result, test.expected_nodes);
         }
     }
 }
