@@ -209,7 +209,7 @@ impl Board {
         match piece.kind {
             PieceKind::NoPiece => bail!("cannot remove empty piece"),
             _ => {
-                self.get_piece_bb_mut(piece)?.set_bit(square);
+                self.get_piece_bb_mut(piece)?.clear_bit(square);
                 self.occupancy_mut(piece.color.try_into()?)
                     .clear_bit(square);
                 self.pieces[square] = Piece::default();
