@@ -4,7 +4,8 @@ chess engine written in rust
 
 ## todos
 
-- [ ] add visual feedback for perft tests
+- [x] add visual feedback for perft tests
+- [ ] zobrist hashing
 - [ ] speed up perft (transposition table)
 - [ ] set up basic cli
 - [ ] implement UCI protocol

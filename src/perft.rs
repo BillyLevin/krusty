@@ -1,4 +1,7 @@
+use std::io::Write;
+
 use anyhow::Context;
+use colored::Colorize;
 
 use crate::{board::Board, move_generator::MoveList};
 
@@ -13,19 +16,62 @@ struct Test {
 }
 
 pub fn run_perft_tests(tests: &str) {
+    let start_time = std::time::Instant::now();
+
     let tests: Vec<_> = tests.lines().map(parse_perft_string).collect();
 
-    for position in tests {
+    let number_of_tests = tests.len();
+
+    let mut pass_count = 0;
+    let mut fail_count = 0;
+
+    for (i, position) in tests.into_iter().enumerate() {
         let position = position.unwrap();
+
+        let progress = format!("[{}/{}]", i + 1, number_of_tests);
+        println!("{} FEN: {}", progress.cyan(), position.fen);
 
         let mut board = Board::default();
         board.parse_fen(position.fen).unwrap();
 
         for test in position.tests {
+            print!(
+                "\r\tdepth: {}, expected nodes: {}",
+                test.depth, test.expected_nodes
+            );
+            std::io::stdout().flush().unwrap();
+
             let result = perft(&mut board, test.depth).unwrap();
-            assert_eq!(result, test.expected_nodes);
+            let passed = result == test.expected_nodes;
+
+            let passed_icon = match passed {
+                true => "\u{2713}".green(),
+                false => "\u{2717}".red(),
+            };
+
+            if passed {
+                pass_count += 1;
+            } else {
+                fail_count += 1;
+            }
+
+            println!(
+                "\r\tdepth: {}, expected nodes: {} {}",
+                test.depth, test.expected_nodes, passed_icon
+            );
         }
     }
+
+    let total_tests = pass_count + fail_count;
+    let pass_count = format!("{} passed", pass_count).green();
+    let fail_count = format!("{} failed", fail_count).red();
+
+    println!(
+        "\nTests: {}, {}, {} total",
+        pass_count, fail_count, total_tests
+    );
+
+    println!("Time: {:.2?}", start_time.elapsed());
 }
 
 fn perft(board: &mut Board, depth: u64) -> anyhow::Result<u64> {
