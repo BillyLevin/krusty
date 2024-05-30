@@ -1,8 +1,4 @@
-use krusty::{
-    board::Board,
-    move_generator::{Move, MoveFlag, MoveKind},
-    square::Square,
-};
+use krusty::perft::run_perft_tests;
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const OPERA_GAME_FEN: &str = "1n1Rkb1r/p4ppp/4q3/4p1B1/4P3/8/PPP2PPP/2K5 b k - 1 17";
@@ -15,17 +11,8 @@ const CASTLING_FEN: &str = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1";
 const PAWNS_FEN: &str = "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1";
 
 fn main() -> anyhow::Result<()> {
-    let mut board = Board::default();
-    board.parse_fen(CASTLING_FEN)?;
-    println!("{}", board);
-
-    let castle_move = Move::new(Square::E1, Square::G1, MoveKind::Castle, MoveFlag::None);
-
-    board.make_move(castle_move)?;
-    println!("{}", board);
-
-    board.unmake_move(castle_move)?;
-    println!("{}", board);
+    let perft_contents = include_str!("../perft.epd");
+    run_perft_tests(perft_contents);
 
     Ok(())
 }

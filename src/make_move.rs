@@ -43,6 +43,8 @@ impl Board {
     pub fn make_move(&mut self, mv: Move) -> anyhow::Result<bool> {
         let from_square = mv.from_square();
         let to_square = mv.to_square();
+        println!("{}", self);
+        println!("from: {:?}, to: {:?}", from_square, to_square);
         let moved_piece = self.remove_piece(from_square)?;
 
         let mut history_item = HistoryItem {

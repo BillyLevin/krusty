@@ -4,5 +4,6 @@ pub mod generate_magics;
 pub mod magics;
 pub mod make_move;
 pub mod move_generator;
+pub mod perft;
 pub mod prng;
 pub mod square;

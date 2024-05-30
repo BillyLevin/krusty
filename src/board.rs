@@ -8,7 +8,7 @@ use colored::Colorize;
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
-    move_generator::MoveGenerator,
+    move_generator::{MoveGenerator, MoveList},
     square::{File, Piece, PieceColor, PieceKind, Rank, Square},
 };
 
@@ -394,6 +394,10 @@ impl Board {
 
     pub fn pop_history(&mut self) -> HistoryItem {
         self.history.pop().unwrap()
+    }
+
+    pub fn generate_all_moves(&self, move_list: &mut MoveList) -> anyhow::Result<()> {
+        self.move_generator.generate_all_moves(self, move_list)
     }
 }
 

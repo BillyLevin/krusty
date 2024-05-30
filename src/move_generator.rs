@@ -93,24 +93,22 @@ impl Move {
     }
 }
 
-const MAX_MOVES: usize = 512;
-
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct MoveList {
-    moves: [Move; MAX_MOVES],
+    moves: Vec<Move>,
     count: usize,
 }
 
 impl MoveList {
     pub fn new() -> Self {
         Self {
-            moves: [Move::NULL_MOVE; 512],
+            moves: Vec::new(),
             count: 0,
         }
     }
 
     pub fn push(&mut self, mv: Move) {
-        self.moves[self.count] = mv;
+        self.moves.push(mv);
         self.count += 1;
     }
 
@@ -122,6 +120,15 @@ impl MoveList {
 impl Default for MoveList {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl IntoIterator for MoveList {
+    type Item = Move;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.moves.into_iter()
     }
 }
 
