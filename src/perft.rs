@@ -25,13 +25,14 @@ pub fn run_perft_tests(tests: &str) {
     let mut pass_count = 0;
     let mut fail_count = 0;
 
+    let mut board = Board::default();
+
     for (i, position) in tests.into_iter().enumerate() {
         let position = position.unwrap();
 
         let progress = format!("[{}/{}]", i + 1, number_of_tests);
         println!("{} FEN: {}", progress.cyan(), position.fen);
 
-        let mut board = Board::default();
         board.parse_fen(position.fen).unwrap();
 
         for test in position.tests {

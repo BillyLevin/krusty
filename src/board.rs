@@ -159,6 +159,36 @@ impl Default for Board {
 }
 
 impl Board {
+    fn reset(&mut self) {
+        self.white_pawns = EMPTY_BB;
+        self.white_knights = EMPTY_BB;
+        self.white_bishops = EMPTY_BB;
+        self.white_rooks = EMPTY_BB;
+        self.white_queens = EMPTY_BB;
+        self.white_king = EMPTY_BB;
+
+        self.black_pawns = EMPTY_BB;
+        self.black_knights = EMPTY_BB;
+        self.black_bishops = EMPTY_BB;
+        self.black_rooks = EMPTY_BB;
+        self.black_queens = EMPTY_BB;
+        self.black_king = EMPTY_BB;
+
+        self.pieces = [Piece::default(); 64];
+
+        self.white_occupancies = EMPTY_BB;
+        self.black_occupancies = EMPTY_BB;
+
+        self.side = Side::White;
+        self.castling_rights = 0;
+
+        self.halfmove_clock = 0;
+
+        self.en_passant_square = Square::None;
+
+        self.history = Vec::new();
+    }
+
     pub fn get_piece_bb(&self, piece: Piece) -> anyhow::Result<Bitboard> {
         match (piece.color, piece.kind) {
             (PieceColor::White, PieceKind::Pawn) => Ok(self.white_pawns),
@@ -223,6 +253,8 @@ impl Board {
     }
 
     pub fn parse_fen(&mut self, fen: &str) -> anyhow::Result<()> {
+        self.reset();
+
         let fields: Vec<&str> = fen.split(' ').collect();
 
         if fields.len() != 6 {
