@@ -51,7 +51,7 @@ pub enum CastlingKind {
     BlackQueen = 0b1000,
 }
 
-type CastlingRights = u8;
+pub type CastlingRights = u8;
 
 impl TryFrom<char> for CastlingKind {
     type Error = anyhow::Error;
@@ -430,6 +430,10 @@ impl Board {
 
     pub fn generate_all_moves(&self, move_list: &mut MoveList) -> anyhow::Result<()> {
         self.move_generator.generate_all_moves(self, move_list)
+    }
+
+    pub fn pieces(&self) -> &[Piece] {
+        &self.pieces
     }
 }
 
