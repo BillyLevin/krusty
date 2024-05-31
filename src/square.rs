@@ -86,7 +86,7 @@ pub enum File {
     H,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Piece {
     pub color: PieceColor,
     pub kind: PieceKind,
@@ -103,7 +103,7 @@ pub enum PieceKind {
     NoPiece,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PieceColor {
     White,
     Black,

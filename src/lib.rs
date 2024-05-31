@@ -7,4 +7,5 @@ pub mod move_generator;
 pub mod perft;
 pub mod prng;
 pub mod square;
+pub mod transposition_table;
 pub mod zobrist_hash;

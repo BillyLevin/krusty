@@ -3,7 +3,11 @@ use std::io::Write;
 use anyhow::Context;
 use colored::Colorize;
 
-use crate::{board::Board, move_generator::MoveList};
+use crate::{
+    board::Board,
+    move_generator::MoveList,
+    transposition_table::{TranspositionTable, TranspositionTableEntry},
+};
 
 struct PerftMetadata<'a> {
     fen: &'a str,
@@ -11,7 +15,7 @@ struct PerftMetadata<'a> {
 }
 
 struct Test {
-    depth: u64,
+    depth: u8,
     expected_nodes: u64,
 }
 
@@ -26,6 +30,7 @@ pub fn run_perft_tests(tests: &str) {
     let mut fail_count = 0;
 
     let mut board = Board::default();
+    let mut transposition_table = TranspositionTable::new(128);
 
     for (i, position) in tests.into_iter().enumerate() {
         let position = position.unwrap();
@@ -35,6 +40,10 @@ pub fn run_perft_tests(tests: &str) {
 
         board.parse_fen(position.fen).unwrap();
 
+        // position.tests.reverse();
+        // position.tests.sort_by_key(|t| t.depth);
+        // let test = position.tests.last().unwrap();
+
         for test in position.tests {
             print!(
                 "\r\tdepth: {}, expected nodes: {}",
@@ -42,7 +51,8 @@ pub fn run_perft_tests(tests: &str) {
             );
             std::io::stdout().flush().unwrap();
 
-            let result = perft(&mut board, test.depth).unwrap();
+            let result = perft(&mut board, test.depth, &mut transposition_table).unwrap();
+            assert_eq!(result, test.expected_nodes);
             let passed = result == test.expected_nodes;
 
             let passed_icon = match passed {
@@ -75,9 +85,18 @@ pub fn run_perft_tests(tests: &str) {
     println!("Time: {:.2?}", start_time.elapsed());
 }
 
-fn perft(board: &mut Board, depth: u64) -> anyhow::Result<u64> {
+fn perft(
+    board: &mut Board,
+    depth: u8,
+    transposition_table: &mut TranspositionTable,
+) -> anyhow::Result<u64> {
     if depth == 0 {
         return Ok(1);
+    }
+
+    let entry = transposition_table.probe(board.hash());
+    if entry.depth == depth && entry.hash == board.hash() {
+        return Ok(entry.node_count);
     }
 
     let mut nodes = 0;
@@ -87,11 +106,13 @@ fn perft(board: &mut Board, depth: u64) -> anyhow::Result<u64> {
 
     for mv in move_list {
         if board.make_move(mv)? {
-            nodes += perft(board, depth - 1)?;
+            nodes += perft(board, depth - 1, transposition_table)?;
         }
 
         board.unmake_move(mv)?;
     }
+
+    transposition_table.store(TranspositionTableEntry::new(board.hash(), nodes, depth));
 
     Ok(nodes)
 }

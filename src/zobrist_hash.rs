@@ -93,7 +93,7 @@ impl ZobristHasher {
         assert!(piece.kind != PieceKind::NoPiece);
 
         let piece_offset = 6 * (piece.color as usize) + (piece.kind as usize);
-        self.numbers[piece_offset + square.index()]
+        self.numbers[piece_offset + (square.index() * 12)]
     }
 }
 
