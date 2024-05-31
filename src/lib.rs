@@ -1,5 +1,6 @@
 pub mod bitboard;
 pub mod board;
+pub mod cli;
 pub mod generate_magics;
 pub mod magics;
 pub mod make_move;

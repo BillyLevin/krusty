@@ -33,6 +33,7 @@ pub fn run_perft_tests(tests: &str) {
     let mut transposition_table = TranspositionTable::new(128);
 
     for (i, position) in tests.into_iter().enumerate() {
+        println!();
         let position = position.unwrap();
 
         let progress = format!("[{}/{}]", i + 1, number_of_tests);
@@ -79,6 +80,7 @@ pub fn run_perft_tests(tests: &str) {
     );
 
     println!("Time: {:.2?}", start_time.elapsed());
+    println!();
 }
 
 fn perft(

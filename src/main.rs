@@ -1,8 +1,7 @@
-use krusty::perft::run_perft_tests;
+use krusty::cli::CLI;
 
 fn main() -> anyhow::Result<()> {
-    let perft_contents = include_str!("../perft.epd");
-    run_perft_tests(perft_contents);
+    CLI::start_loop();
 
     Ok(())
 }
