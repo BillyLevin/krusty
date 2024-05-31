@@ -6,7 +6,7 @@ chess engine written in rust
 
 - [x] add visual feedback for perft tests
 - [x] zobrist hashing
-- [ ] speed up perft (transposition table)
+- [x] speed up perft (transposition table)
 - [ ] set up basic cli
 - [ ] implement UCI protocol
 - [ ] basic search
