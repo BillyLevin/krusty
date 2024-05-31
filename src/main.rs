@@ -1,7 +1,8 @@
 use krusty::cli::CLI;
 
 fn main() -> anyhow::Result<()> {
-    CLI::start_loop();
+    let mut cli = CLI::default();
+    cli.start_loop();
 
     Ok(())
 }
