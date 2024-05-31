@@ -40,10 +40,6 @@ pub fn run_perft_tests(tests: &str) {
 
         board.parse_fen(position.fen).unwrap();
 
-        // position.tests.reverse();
-        // position.tests.sort_by_key(|t| t.depth);
-        // let test = position.tests.last().unwrap();
-
         for test in position.tests {
             print!(
                 "\r\tdepth: {}, expected nodes: {}",
