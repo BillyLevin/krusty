@@ -10,6 +10,8 @@ const EN_PASSANT_OFFSET: usize = 785; // + 16 bits for castling
 
 const ZOBRIST_NUMBERS_SIZE: usize = 794; // + 9 bits for en passant files
 
+const INVALID_EP_SQUARE: usize = 8;
+
 const fn init_zobrist_en_passant_files() -> [usize; 65] {
     let mut files = [0; 65];
 
@@ -22,7 +24,7 @@ const fn init_zobrist_en_passant_files() -> [usize; 65] {
             let file = square % 8;
             files[square] = file;
         } else {
-            files[square] = 8;
+            files[square] = INVALID_EP_SQUARE;
         }
 
         square += 1;
@@ -45,10 +47,6 @@ pub enum ZobristKey {
 }
 
 impl ZobristHasher {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn hash_position(&self, board: &Board) -> u64 {
         let mut hash = 0;
 
@@ -77,7 +75,16 @@ impl ZobristHasher {
                 self.numbers[CASTLE_OFFSET + (castling_rights as usize)]
             }
             ZobristKey::EnPassantFile(square) => {
-                self.numbers[EN_PASSANT_OFFSET + ZOBRIST_EN_PASSANT_FILES[square as usize]]
+                let file_offset = ZOBRIST_EN_PASSANT_FILES[square as usize];
+                // we have values for all squares in a table for lookup speed. however, if the
+                // square is not possibly an EP square (not 3rd or 6th rank) then we don't want to
+                // change the hash so return 0 instead of the randomly generated number in its
+                // position
+                if file_offset == INVALID_EP_SQUARE {
+                    0
+                } else {
+                    self.numbers[EN_PASSANT_OFFSET + file_offset]
+                }
             }
         }
     }

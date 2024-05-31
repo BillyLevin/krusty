@@ -43,7 +43,7 @@ impl Board {
     pub fn make_move(&mut self, mv: Move) -> anyhow::Result<bool> {
         let from_square = mv.from_square();
         let to_square = mv.to_square();
-        let moved_piece = self.remove_piece(from_square)?;
+        let moved_piece = self.remove_piece_and_hash(from_square)?;
 
         let mut history_item = HistoryItem {
             castling_rights: self.castling_rights(),
@@ -55,10 +55,14 @@ impl Board {
 
         self.increment_clock();
 
+        // due to the behaviour of XOR (a ^ b ^ b == a), calling the hash function with the same square will
+        // remove its value from the hash, then we can hash it again later when we get the new en
+        // passant square
+        self.hash_en_passant_square();
         self.set_en_passant_square(Square::None);
 
         match mv.kind() {
-            MoveKind::Quiet => self.add_piece(moved_piece, to_square)?,
+            MoveKind::Quiet => self.add_piece_and_hash(moved_piece, to_square)?,
             MoveKind::Capture => {
                 // captures (and pawn pushes, handled lower down) reset halfmove clock for 50-move
                 // rule
@@ -70,15 +74,15 @@ impl Board {
                         Side::Black => to_square.north(),
                     };
 
-                    history_item.captured_piece = self.remove_piece(captured_square)?;
-                    self.add_piece(moved_piece, to_square)?;
+                    history_item.captured_piece = self.remove_piece_and_hash(captured_square)?;
+                    self.add_piece_and_hash(moved_piece, to_square)?;
                 } else {
-                    self.remove_piece(to_square)?;
-                    self.add_piece(moved_piece, to_square)?;
+                    self.remove_piece_and_hash(to_square)?;
+                    self.add_piece_and_hash(moved_piece, to_square)?;
                 }
             }
             MoveKind::Castle => {
-                self.add_piece(moved_piece, to_square)?;
+                self.add_piece_and_hash(moved_piece, to_square)?;
 
                 let (rook_from, rook_to) = match to_square {
                     Square::G1 => (Square::H1, Square::F1),
@@ -87,12 +91,12 @@ impl Board {
                     Square::C8 => (Square::A8, Square::D8),
                     _ => bail!("tried to castle to illegal square: {:?}", to_square),
                 };
-                let rook = self.remove_piece(rook_from)?;
-                self.add_piece(rook, rook_to)?;
+                let rook = self.remove_piece_and_hash(rook_from)?;
+                self.add_piece_and_hash(rook, rook_to)?;
             }
             MoveKind::Promotion => {
                 if self.get_piece(to_square).kind != PieceKind::NoPiece {
-                    self.remove_piece(to_square)?;
+                    self.remove_piece_and_hash(to_square)?;
                 }
 
                 let promotion_piece = match mv.flag() {
@@ -111,7 +115,7 @@ impl Board {
                     _ => bail!("tried to make promotion move without providing a promotion flag"),
                 };
 
-                self.add_piece(promotion_piece, to_square)?;
+                self.add_piece_and_hash(promotion_piece, to_square)?;
             }
         };
 
@@ -135,16 +139,21 @@ impl Board {
 
                 if attacks & enemy_pawns != EMPTY_BB {
                     self.set_en_passant_square(ep_square);
+                    self.hash_en_passant_square();
                 }
             }
         }
 
+        // clear current castling hash
+        self.hash_castling_rights();
         let new_castling_rights = self.castling_rights()
             & CASTLING_PERMISSIONS_TABLE[from_square.index()]
             & CASTLING_PERMISSIONS_TABLE[to_square.index()];
         self.set_castling_rights(new_castling_rights);
+        // hash new castling rights
+        self.hash_castling_rights();
 
-        self.switch_side();
+        self.switch_side_and_hash();
 
         self.push_history(history_item);
 
@@ -161,16 +170,16 @@ impl Board {
         self.set_en_passant_square(history_item.en_passant_square);
         self.set_halfmove_clock(history_item.halfmove_clock);
 
-        self.switch_side();
+        self.switch_side_and_hash();
 
         let from_square = mv.from_square();
         let to_square = mv.to_square();
 
-        self.add_piece(history_item.moved_piece, from_square)?;
+        self.add_piece_and_hash(history_item.moved_piece, from_square)?;
 
         match mv.kind() {
             MoveKind::Quiet => {
-                self.remove_piece(to_square)?;
+                self.remove_piece_and_hash(to_square)?;
             }
             MoveKind::Capture => {
                 if mv.flag() == MoveFlag::EnPassant {
@@ -179,16 +188,16 @@ impl Board {
                         Side::Black => to_square.north(),
                     };
 
-                    self.remove_piece(to_square)?;
-                    self.add_piece(history_item.captured_piece, captured_square)?;
+                    self.remove_piece_and_hash(to_square)?;
+                    self.add_piece_and_hash(history_item.captured_piece, captured_square)?;
                 } else {
-                    self.remove_piece(to_square)?;
-                    self.add_piece(history_item.captured_piece, to_square)?;
+                    self.remove_piece_and_hash(to_square)?;
+                    self.add_piece_and_hash(history_item.captured_piece, to_square)?;
                 }
             }
             MoveKind::Castle => {
                 // remove the king
-                self.remove_piece(to_square)?;
+                self.remove_piece_and_hash(to_square)?;
 
                 // put the rook back to its original square
                 let (rook_from, rook_to) = match to_square {
@@ -201,13 +210,13 @@ impl Board {
                         to_square
                     ),
                 };
-                let rook = self.remove_piece(rook_to)?;
-                self.add_piece(rook, rook_from)?;
+                let rook = self.remove_piece_and_hash(rook_to)?;
+                self.add_piece_and_hash(rook, rook_from)?;
             }
             MoveKind::Promotion => {
-                self.remove_piece(to_square)?;
+                self.remove_piece_and_hash(to_square)?;
                 if history_item.captured_piece.kind != PieceKind::NoPiece {
-                    self.add_piece(history_item.captured_piece, to_square)?;
+                    self.add_piece_and_hash(history_item.captured_piece, to_square)?;
                 }
             }
         };

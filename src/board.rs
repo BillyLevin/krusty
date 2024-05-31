@@ -10,6 +10,7 @@ use crate::{
     bitboard::{Bitboard, EMPTY_BB},
     move_generator::{MoveGenerator, MoveList},
     square::{File, Piece, PieceColor, PieceKind, Rank, Square},
+    zobrist_hash::{ZobristHasher, ZobristKey},
 };
 
 type BoardPieces = [Piece; 64];
@@ -106,6 +107,9 @@ pub struct Board {
     history: Vec<HistoryItem>,
 
     move_generator: MoveGenerator,
+
+    hasher: ZobristHasher,
+    pub hash: u64,
 }
 
 impl Index<Square> for BoardPieces {
@@ -154,6 +158,9 @@ impl Default for Board {
             history: Vec::new(),
 
             move_generator: MoveGenerator::default(),
+
+            hasher: ZobristHasher::default(),
+            hash: 0,
         }
     }
 }
@@ -233,6 +240,13 @@ impl Board {
         Ok(())
     }
 
+    pub fn add_piece_and_hash(&mut self, piece: Piece, square: Square) -> anyhow::Result<()> {
+        self.add_piece(piece, square)?;
+        self.update_hash(ZobristKey::Piece(piece, square));
+
+        Ok(())
+    }
+
     pub fn remove_piece(&mut self, square: Square) -> anyhow::Result<Piece> {
         let piece = self.pieces[square];
 
@@ -246,6 +260,13 @@ impl Board {
                 Ok(piece)
             }
         }
+    }
+
+    pub fn remove_piece_and_hash(&mut self, square: Square) -> anyhow::Result<Piece> {
+        let piece = self.remove_piece(square)?;
+        self.update_hash(ZobristKey::Piece(piece, square));
+
+        Ok(piece)
     }
 
     pub fn get_piece(&self, square: Square) -> Piece {
@@ -339,6 +360,8 @@ impl Board {
 
         self.halfmove_clock = halfmove_clock.parse()?;
 
+        self.hash = self.hasher.hash_position(self);
+
         Ok(())
     }
 
@@ -348,6 +371,10 @@ impl Board {
 
     pub fn castling_rights(&self) -> u8 {
         self.castling_rights
+    }
+
+    pub fn hash_castling_rights(&mut self) {
+        self.update_hash(ZobristKey::Castling(self.castling_rights));
     }
 
     pub fn set_castling_rights(&mut self, rights: u8) {
@@ -362,11 +389,13 @@ impl Board {
         self.side
     }
 
-    pub fn switch_side(&mut self) {
+    pub fn switch_side_and_hash(&mut self) {
         self.side = match self.side {
             Side::White => Side::Black,
             Side::Black => Side::White,
         };
+
+        self.update_hash(ZobristKey::Side);
     }
 
     pub fn reset_clock(&mut self) {
@@ -393,6 +422,10 @@ impl Board {
 
     pub fn en_passant_square(&self) -> Square {
         self.en_passant_square
+    }
+
+    pub fn hash_en_passant_square(&mut self) {
+        self.update_hash(ZobristKey::EnPassantFile(self.en_passant_square));
     }
 
     pub fn set_en_passant_square(&mut self, square: Square) {
@@ -434,6 +467,10 @@ impl Board {
 
     pub fn pieces(&self) -> &[Piece] {
         &self.pieces
+    }
+
+    pub fn update_hash(&mut self, cause: ZobristKey) {
+        self.hash ^= self.hasher.get_key_part(cause);
     }
 }
 
