@@ -12,6 +12,13 @@ chess engine written in rust
 - [ ] add debugging commands (load FEN, perft on specific FEN, print board)
 - [ ] implement UCI protocol (at least the important parts)
 - [ ] basic search
-- [ ] basic evaluation
+- [ ] basic material evaluation
 - [ ] time management
+- [ ] iterative deepening
+- [ ] integrate transposition table with search
 - [ ] alpha-beta pruning
+- [ ] move ordering
+- [ ] piece-square tables
+- [ ] quiescence search
+- [ ] piece mobility
+- [ ] opening book
