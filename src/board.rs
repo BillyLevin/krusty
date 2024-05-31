@@ -74,6 +74,7 @@ pub struct HistoryItem {
     pub halfmove_clock: usize,
     pub moved_piece: Piece,
     pub captured_piece: Piece,
+    pub hash: u64,
 }
 
 pub struct Board {
@@ -109,7 +110,7 @@ pub struct Board {
     move_generator: MoveGenerator,
 
     hasher: ZobristHasher,
-    pub hash: u64,
+    hash: u64,
 }
 
 impl Index<Square> for BoardPieces {
@@ -389,12 +390,15 @@ impl Board {
         self.side
     }
 
-    pub fn switch_side_and_hash(&mut self) {
+    pub fn switch_side(&mut self) {
         self.side = match self.side {
             Side::White => Side::Black,
             Side::Black => Side::White,
         };
+    }
 
+    pub fn switch_side_and_hash(&mut self) {
+        self.switch_side();
         self.update_hash(ZobristKey::Side);
     }
 
@@ -471,6 +475,14 @@ impl Board {
 
     pub fn update_hash(&mut self, cause: ZobristKey) {
         self.hash ^= self.hasher.get_key_part(cause);
+    }
+
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
+
+    pub fn set_hash(&mut self, hash: u64) {
+        self.hash = hash
     }
 }
 

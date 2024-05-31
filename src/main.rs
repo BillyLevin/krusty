@@ -1,35 +1,27 @@
 use krusty::{
     board::Board,
+    move_generator::{Move, MoveFlag, MoveKind},
     perft::run_perft_tests,
-    square::{Piece, PieceColor, PieceKind},
-    zobrist_hash::ZobristHasher,
+    square::Square,
 };
 
 fn main() -> anyhow::Result<()> {
     let mut board = Board::default();
+    board.parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")?;
 
-    board.parse_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1")?;
+    let initial_hash = board.hash();
 
-    dbg!(board.hash);
+    // println!("{}", board);
+    dbg!(board.hash());
 
-    board.add_piece_and_hash(
-        Piece::new(PieceColor::White, PieceKind::Pawn),
-        krusty::square::Square::D4,
-    )?;
+    let mv = Move::new(Square::E2, Square::E4, MoveKind::Quiet, MoveFlag::None);
 
-    dbg!(board.hash);
+    board.make_move(mv)?;
+    dbg!(board.hash());
 
-    board.remove_piece_and_hash(krusty::square::Square::D4)?;
+    board.unmake_move(mv)?;
 
-    dbg!(board.hash);
-
-    board.switch_side_and_hash();
-
-    dbg!(board.hash);
-
-    board.switch_side_and_hash();
-
-    dbg!(board.hash);
+    assert_eq!(board.hash(), initial_hash);
 
     let perft_contents = include_str!("../perft.epd");
     run_perft_tests(perft_contents);
