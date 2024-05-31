@@ -34,6 +34,7 @@ impl CLI {
         println!("\nCommands:");
         println!("- {}: run full perft suite", "perft".cyan());
         println!("- {}: load FEN", "fen [<FEN> | startpos>]".cyan());
+        println!("- {}: print current position", "print".cyan());
 
         println!();
     }
@@ -48,6 +49,7 @@ impl CLI {
         match command {
             "perft" => run_perft_tests(include_str!("../perft.epd")),
             "fen" => self.handle_fen_command(args),
+            "print" => println!("{}", self.board),
             _ => println!("Invalid command"),
         };
     }
