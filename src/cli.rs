@@ -31,10 +31,17 @@ impl CLI {
         println!("\n\nWelcome to {}", "Krusty!".color("orange").bold());
         println!("A chess engine written in Rust \u{1F980}");
 
-        println!("\nCommands:");
+        Self::print_commands();
+    }
+
+    fn print_commands() {
+        println!();
+
+        println!("Commands:");
         println!("- {}: run full perft suite", "perft".cyan());
         println!("- {}: load FEN", "fen [<FEN> | startpos>]".cyan());
         println!("- {}: print current position", "print".cyan());
+        println!("- {}: print this command list", "help".cyan());
 
         println!();
     }
@@ -50,6 +57,7 @@ impl CLI {
             "perft" => run_perft_tests(include_str!("../perft.epd")),
             "fen" => self.handle_fen_command(args),
             "print" => println!("{}", self.board),
+            "help" => Self::print_commands(),
             _ => println!("Invalid command"),
         };
     }
