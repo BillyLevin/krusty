@@ -199,8 +199,11 @@ impl CLI {
 
 impl Default for CLI {
     fn default() -> Self {
+        let mut board = Board::default();
+        board.parse_fen(START_POSITION_FEN).unwrap();
+
         Self {
-            board: Board::default(),
+            board,
             transposition_table: TranspositionTable::new(64),
         }
     }
