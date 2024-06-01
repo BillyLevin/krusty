@@ -7,7 +7,7 @@ use crate::{
     square::{Piece, PieceKind, Rank, Square},
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MoveKind {
     Quiet = 0b00,
     Capture = 0b01,

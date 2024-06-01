@@ -9,6 +9,7 @@ use anyhow::{bail, Context};
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
     board::Side,
+    move_generator::MoveFlag,
 };
 
 macro_rules! define_squares {
@@ -115,6 +116,35 @@ impl From<Side> for PieceColor {
         match value {
             Side::White => PieceColor::White,
             Side::Black => PieceColor::Black,
+        }
+    }
+}
+
+impl TryFrom<char> for PieceKind {
+    type Error = anyhow::Error;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            // this is currently only being used to check for promotion pieces. might need to
+            // eventually allow it to get any piece type and then validate whether it's a
+            // promotion piece at the call site
+            'n' => Ok(PieceKind::Knight),
+            'b' => Ok(PieceKind::Bishop),
+            'r' => Ok(PieceKind::Rook),
+            'q' => Ok(PieceKind::Queen),
+            _ => bail!("invalid piece character"),
+        }
+    }
+}
+
+impl From<MoveFlag> for PieceKind {
+    fn from(flag: MoveFlag) -> Self {
+        match flag {
+            MoveFlag::KnightPromotion => PieceKind::Knight,
+            MoveFlag::BishopPromotion => PieceKind::Bishop,
+            MoveFlag::RookPromotion => PieceKind::Rook,
+            MoveFlag::QueenPromotion => PieceKind::Queen,
+            _ => panic!("only promotion flags can be converted to a piece"),
         }
     }
 }
