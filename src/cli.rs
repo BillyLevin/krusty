@@ -2,13 +2,17 @@ use std::io::{self, BufRead, Write};
 
 use colored::Colorize;
 
-use crate::{board::Board, perft::run_perft_tests};
+use crate::{
+    board::Board,
+    perft::{perft, run_perft_tests},
+    transposition_table::TranspositionTable,
+};
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-#[derive(Default)]
 pub struct CLI {
     board: Board,
+    transposition_table: TranspositionTable,
 }
 
 impl CLI {
@@ -38,8 +42,8 @@ impl CLI {
         println!();
 
         println!("Commands:");
-        println!("- {}: run full perft suite", "perft".cyan());
-        println!("- {}: load FEN", "fen [<FEN> | startpos>]".cyan());
+        println!("- {}: run full perft suite", "perft [<depth>]".cyan());
+        println!("- {}: load FEN", "fen <FEN> | startpos".cyan());
         println!("- {}: print current position", "print".cyan());
         println!("- {}: print this command list", "help".cyan());
 
@@ -53,8 +57,10 @@ impl CLI {
             None => (input, ""),
         };
 
+        let args = args.trim();
+
         match command {
-            "perft" => run_perft_tests(include_str!("../perft.epd")),
+            "perft" => self.handle_perft_command(args),
             "fen" => self.handle_fen_command(args),
             "print" => println!("{}", self.board),
             "help" => Self::print_commands(),
@@ -62,8 +68,25 @@ impl CLI {
         };
     }
 
+    fn handle_perft_command(&mut self, args: &str) {
+        if args.is_empty() {
+            run_perft_tests(include_str!("../perft.epd"), None);
+            return;
+        }
+
+        let depth: u8 = match args.parse() {
+            Ok(value) => value,
+            Err(_) => {
+                println!("Depth must be an integer");
+                return;
+            }
+        };
+
+        let nodes = perft(&mut self.board, depth, &mut self.transposition_table).unwrap();
+        println!("nodes: {}", nodes);
+    }
+
     fn handle_fen_command(&mut self, args: &str) {
-        let args = args.trim();
         if args.is_empty() {
             println!("Invalid FEN");
             return;
@@ -76,6 +99,15 @@ impl CLI {
 
         if self.board.parse_fen(fen).is_err() {
             println!("Invalid FEN");
+        }
+    }
+}
+
+impl Default for CLI {
+    fn default() -> Self {
+        Self {
+            board: Board::default(),
+            transposition_table: TranspositionTable::new(64),
         }
     }
 }

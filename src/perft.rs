@@ -19,7 +19,7 @@ struct Test {
     expected_nodes: u64,
 }
 
-pub fn run_perft_tests(tests: &str) {
+pub fn run_perft_tests(tests: &str, table: Option<TranspositionTable>) {
     let start_time = std::time::Instant::now();
 
     let tests: Vec<_> = tests.lines().map(parse_perft_string).collect();
@@ -30,7 +30,11 @@ pub fn run_perft_tests(tests: &str) {
     let mut fail_count = 0;
 
     let mut board = Board::default();
-    let mut transposition_table = TranspositionTable::new(128);
+    let mut transposition_table = if let Some(tt) = table {
+        tt
+    } else {
+        TranspositionTable::new(128)
+    };
 
     for (i, position) in tests.into_iter().enumerate() {
         println!();
@@ -83,7 +87,7 @@ pub fn run_perft_tests(tests: &str) {
     println!();
 }
 
-fn perft(
+pub fn perft(
     board: &mut Board,
     depth: u8,
     transposition_table: &mut TranspositionTable,
