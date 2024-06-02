@@ -14,7 +14,7 @@ chess engine written in rust
 - [ ] consistent error handling (and panic where it's a bug in program implementation)
 - [ ] implement UCI protocol (at least the important parts)
 - [ ] basic search
-- [ ] basic material evaluation
+- [x] basic material evaluation
 - [ ] time management
 - [ ] iterative deepening
 - [ ] integrate transposition table with search
