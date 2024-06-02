@@ -42,7 +42,7 @@ pub fn evaluate(board: &Board) -> i32 {
 
     let multiplier = match board.side_to_move() {
         Side::White => 1,
-        Side::Black => 0,
+        Side::Black => -1,
     };
 
     multiplier * (white_score - black_score)

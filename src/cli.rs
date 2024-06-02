@@ -5,6 +5,7 @@ use colored::Colorize;
 
 use crate::{
     board::Board,
+    evaluate::evaluate,
     move_generator::{Move, MoveKind, MoveList},
     perft::{perft, run_perft_tests},
     square::{PieceKind, Square},
@@ -55,6 +56,10 @@ impl CLI {
             "- {}: alias for `moves` command",
             "mv <move1> <move2> ... ".cyan()
         );
+        println!(
+            "- {}: print evaluation of position relative to current side",
+            "eval".cyan()
+        );
         println!("- {}: print current position", "print".cyan());
         println!("- {}: print this command list", "help".cyan());
 
@@ -74,6 +79,7 @@ impl CLI {
             "perft" => self.handle_perft_command(args),
             "fen" => self.handle_fen_command(args),
             "moves" | "mv" => self.handle_moves_command(args),
+            "eval" => self.handle_eval_command(),
             "print" => println!("{}", self.board),
             "help" => Self::print_commands(),
             _ => println!("Invalid command"),
@@ -194,6 +200,10 @@ impl CLI {
         }
 
         None
+    }
+
+    fn handle_eval_command(&self) {
+        println!("{}", evaluate(&self.board))
     }
 }
 
