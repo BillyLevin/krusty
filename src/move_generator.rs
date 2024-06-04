@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::{
     bitboard::{Bitboard, EMPTY_BB},
@@ -90,6 +90,23 @@ impl Move {
 
     pub fn flag(&self) -> MoveFlag {
         ((self.0 >> 14) & Self::MOVE_FLAG_MASK).into()
+    }
+}
+
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let squares = format!("{:?}{:?}", self.from_square(), self.to_square());
+        write!(f, "{}", squares.to_lowercase())?;
+
+        let promotion = match self.flag() {
+            MoveFlag::KnightPromotion => "n",
+            MoveFlag::BishopPromotion => "b",
+            MoveFlag::RookPromotion => "r",
+            MoveFlag::QueenPromotion => "q",
+            _ => "",
+        };
+
+        write!(f, "{}", promotion)
     }
 }
 

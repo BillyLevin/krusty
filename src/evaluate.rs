@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Side},
+    board::Board,
     square::{Piece, PieceColor, PieceKind},
 };
 

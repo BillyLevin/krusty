@@ -8,6 +8,7 @@ use crate::{
     evaluate::evaluate,
     move_generator::{Move, MoveKind, MoveList},
     perft::{perft, run_perft_tests},
+    search::Search,
     square::{PieceKind, Square},
     transposition_table::TranspositionTable,
 };
@@ -60,6 +61,10 @@ impl CLI {
             "- {}: print evaluation of position relative to current side",
             "eval".cyan()
         );
+        println!(
+            "- {}: print best move after searching at given depth",
+            "search <depth>".cyan()
+        );
         println!("- {}: print current position", "print".cyan());
         println!("- {}: print this command list", "help".cyan());
 
@@ -80,6 +85,7 @@ impl CLI {
             "fen" => self.handle_fen_command(args),
             "moves" | "mv" => self.handle_moves_command(args),
             "eval" => self.handle_eval_command(),
+            "search" => self.handle_search_command(args),
             "print" => println!("{}", self.board),
             "help" => Self::print_commands(),
             _ => println!("Invalid command"),
@@ -204,6 +210,29 @@ impl CLI {
 
     fn handle_eval_command(&self) {
         println!("{}", evaluate(&self.board))
+    }
+
+    fn handle_search_command(&mut self, args: &str) {
+        if args.is_empty() {
+            println!("Please provide a search depth");
+            return;
+        }
+
+        let depth: u8 = match args.parse() {
+            Ok(value) => value,
+            Err(_) => {
+                println!("Depth must be an integer");
+                return;
+            }
+        };
+
+        let search = Search {};
+        let best_move = search.search_position(&mut self.board, depth).unwrap();
+        if let Some(mv) = best_move {
+            println!("{}", mv);
+        } else {
+            println!("Couldn't find a move");
+        }
     }
 }
 

@@ -13,7 +13,7 @@ chess engine written in rust
 - [x] add command to make moves
 - [ ] consistent error handling (and panic where it's a bug in program implementation)
 - [ ] implement UCI protocol (at least the important parts)
-- [ ] basic search
+- [x] basic search
 - [x] basic material evaluation
 - [ ] time management
 - [ ] iterative deepening

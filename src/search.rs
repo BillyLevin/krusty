@@ -16,7 +16,7 @@ impl Search {
 
         for mv in move_list {
             if board.make_move(mv)? {
-                let score = self.minimax(board, depth)?;
+                let score = self.minimax(board, depth - 1)?;
                 if score > best_score {
                     best_score = score;
                     best_move = Some(mv);
