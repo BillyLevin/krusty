@@ -40,10 +40,14 @@ pub fn evaluate(board: &Board) -> i32 {
         };
     }
 
-    let multiplier = match board.side_to_move() {
-        Side::White => 1,
-        Side::Black => -1,
-    };
+    // TODO: when implementing negamax, the evaluation needs to be relative to the current player,
+    // not to white
+    // let multiplier = match board.side_to_move() {
+    //     Side::White => 1,
+    //     Side::Black => -1,
+    // };
+    //
+    // multiplier * (white_score - black_score)
 
-    multiplier * (white_score - black_score)
+    white_score - black_score
 }
