@@ -57,12 +57,10 @@ impl From<u32> for MoveFlag {
 // 3 bits: move flag
 // = 17 bits to represent the move
 // the remaining 15 bits will be used for move ordering later on
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Move(u32);
 
 impl Move {
-    pub const NULL_MOVE: Move = Move(0);
-
     const SQUARE_MASK: u32 = 0b00111111;
     const MOVE_KIND_MASK: u32 = 0b00000011;
     const MOVE_FLAG_MASK: u32 = 0b00000111;

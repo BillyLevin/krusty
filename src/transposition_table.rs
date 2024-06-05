@@ -1,16 +1,30 @@
-pub struct TranspositionTable {
-    entries: Vec<TranspositionTableEntry>,
+pub trait TableEntry {
+    fn hash(&self) -> u64;
+}
+
+pub struct TranspositionTable<Entry>
+where
+    Entry: TableEntry + Default + Clone,
+{
+    entries: Vec<Entry>,
     size: usize,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct TranspositionTableEntry {
+pub struct PerftTableEntry {
     pub hash: u64,
     pub node_count: u64,
     pub depth: u8,
 }
 
-impl TranspositionTableEntry {
+#[derive(Debug, Default, Clone)]
+pub struct SearchTableEntry {
+    pub hash: u64,
+    pub depth: u8,
+    pub score: i32,
+}
+
+impl PerftTableEntry {
     pub fn new(hash: u64, node_count: u64, depth: u8) -> Self {
         Self {
             hash,
@@ -20,24 +34,45 @@ impl TranspositionTableEntry {
     }
 }
 
+impl TableEntry for PerftTableEntry {
+    fn hash(&self) -> u64 {
+        self.hash
+    }
+}
+
+impl SearchTableEntry {
+    pub fn new(hash: u64, depth: u8, score: i32) -> Self {
+        Self { hash, depth, score }
+    }
+}
+
+impl TableEntry for SearchTableEntry {
+    fn hash(&self) -> u64 {
+        self.hash
+    }
+}
+
 const MEGABYTE: usize = 1024 * 1024;
 
-impl TranspositionTable {
+impl<Entry> TranspositionTable<Entry>
+where
+    Entry: TableEntry + Default + Clone,
+{
     pub fn new(size_in_mb: usize) -> Self {
-        let size = (size_in_mb * MEGABYTE) / std::mem::size_of::<TranspositionTableEntry>();
+        let size = (size_in_mb * MEGABYTE) / std::mem::size_of::<Entry>();
 
         Self {
-            entries: vec![TranspositionTableEntry::default(); size],
+            entries: vec![Entry::default(); size],
             size,
         }
     }
 
-    pub fn store(&mut self, entry: TranspositionTableEntry) {
-        let index = self.get_index(entry.hash);
+    pub fn store(&mut self, entry: Entry) {
+        let index = self.get_index(entry.hash());
         self.entries[index] = entry;
     }
 
-    pub fn probe(&self, hash: u64) -> &TranspositionTableEntry {
+    pub fn probe(&self, hash: u64) -> &Entry {
         let index = self.get_index(hash);
         &self.entries[index]
     }

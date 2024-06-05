@@ -6,7 +6,7 @@ use colored::Colorize;
 use crate::{
     board::Board,
     move_generator::MoveList,
-    transposition_table::{TranspositionTable, TranspositionTableEntry},
+    transposition_table::{PerftTableEntry, TranspositionTable},
 };
 
 struct PerftMetadata<'a> {
@@ -19,7 +19,7 @@ struct Test {
     expected_nodes: u64,
 }
 
-pub fn run_perft_tests(tests: &str, transposition_table: &mut TranspositionTable) {
+pub fn run_perft_tests(tests: &str, transposition_table: &mut TranspositionTable<PerftTableEntry>) {
     let start_time = std::time::Instant::now();
 
     let tests: Vec<_> = tests.lines().map(parse_perft_string).collect();
@@ -85,7 +85,7 @@ pub fn run_perft_tests(tests: &str, transposition_table: &mut TranspositionTable
 pub fn perft(
     board: &mut Board,
     depth: u8,
-    transposition_table: &mut TranspositionTable,
+    transposition_table: &mut TranspositionTable<PerftTableEntry>,
 ) -> anyhow::Result<u64> {
     if depth == 0 {
         return Ok(1);
@@ -109,7 +109,7 @@ pub fn perft(
         board.unmake_move(mv)?;
     }
 
-    transposition_table.store(TranspositionTableEntry::new(board.hash(), nodes, depth));
+    transposition_table.store(PerftTableEntry::new(board.hash(), nodes, depth));
 
     Ok(nodes)
 }

@@ -10,14 +10,15 @@ use crate::{
     perft::{perft, run_perft_tests},
     search::Search,
     square::{PieceKind, Square},
-    transposition_table::TranspositionTable,
+    transposition_table::{PerftTableEntry, TranspositionTable},
 };
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 pub struct CLI {
     board: Board,
-    transposition_table: TranspositionTable,
+    transposition_table: TranspositionTable<PerftTableEntry>,
+    search: Search,
 }
 
 impl CLI {
@@ -226,8 +227,7 @@ impl CLI {
             }
         };
 
-        let search = Search {};
-        let best_move = search.search_position(&mut self.board, depth).unwrap();
+        let best_move = self.search.search_position(&mut self.board, depth).unwrap();
         if let Some(mv) = best_move {
             println!("{}", mv);
         } else {
@@ -244,6 +244,7 @@ impl Default for CLI {
         Self {
             board,
             transposition_table: TranspositionTable::new(256),
+            search: Search::default(),
         }
     }
 }
