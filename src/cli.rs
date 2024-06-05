@@ -94,7 +94,7 @@ impl CLI {
 
     fn handle_perft_command(&mut self, args: &str) {
         if args.is_empty() {
-            run_perft_tests(include_str!("../perft.epd"), None);
+            run_perft_tests(include_str!("../perft.epd"), &mut self.transposition_table);
             return;
         }
 
@@ -243,7 +243,7 @@ impl Default for CLI {
 
         Self {
             board,
-            transposition_table: TranspositionTable::new(64),
+            transposition_table: TranspositionTable::new(256),
         }
     }
 }
