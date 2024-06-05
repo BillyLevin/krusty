@@ -15,13 +15,13 @@ use crate::{
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-pub struct CLI {
+pub struct Cli {
     board: Board,
     transposition_table: TranspositionTable<PerftTableEntry>,
     search: Search,
 }
 
-impl CLI {
+impl Cli {
     pub fn start_loop(&mut self) {
         Self::print_greeting();
 
@@ -236,7 +236,7 @@ impl CLI {
     }
 }
 
-impl Default for CLI {
+impl Default for Cli {
     fn default() -> Self {
         let mut board = Board::default();
         board.parse_fen(START_POSITION_FEN).unwrap();
