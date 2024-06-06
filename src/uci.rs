@@ -5,12 +5,15 @@ use crate::{
     search::Search,
 };
 
-#[derive(Default)]
-pub struct Uci {
-    search: Search,
+pub struct Uci<'a> {
+    search: &'a Search,
 }
 
-impl Uci {
+impl<'a> Uci<'a> {
+    pub fn new(search: &'a Search) -> Self {
+        Self { search }
+    }
+
     pub fn start_loop(&self) {
         Self::handle_uci_command();
 
@@ -24,7 +27,19 @@ impl Uci {
     }
 
     fn handle_input(&self, input: &str) {
-        todo!()
+        let input = input.trim();
+        let (command, args) = match input.split_once(' ') {
+            Some((command, args)) => (command, args),
+            None => (input, ""),
+        };
+
+        let args = args.trim();
+
+        match command {
+            "uci" => Self::handle_uci_command(),
+            "isready" => println!("readyok"),
+            _ => (),
+        };
     }
 
     fn handle_uci_command() {

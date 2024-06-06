@@ -13,6 +13,8 @@ use crate::{
     zobrist_hash::{ZobristHasher, ZobristKey},
 };
 
+pub const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
 type BoardPieces = [Piece; 64];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

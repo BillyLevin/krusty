@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Side},
+    board::{Board, Side, START_POSITION_FEN},
     evaluate::evaluate,
     move_generator::{Move, MoveList},
     transposition_table::{SearchTableEntry, TranspositionTable},
@@ -7,86 +7,93 @@ use crate::{
 
 pub struct Search {
     transposition_table: TranspositionTable<SearchTableEntry>,
+    pub board: Board,
 }
 
 impl Default for Search {
     fn default() -> Self {
+        let mut board = Board::default();
+        board.parse_fen(START_POSITION_FEN).unwrap();
+
         Self {
             transposition_table: TranspositionTable::new(64),
+            board,
         }
     }
 }
 
 impl Search {
-    pub fn search_position(
-        &mut self,
-        board: &mut Board,
-        depth: u8,
-    ) -> anyhow::Result<Option<Move>> {
+    pub fn search_position(&mut self, depth: u8) -> anyhow::Result<Option<Move>> {
         let mut best_score = i32::MIN;
         let mut best_move = None;
 
         let mut move_list = MoveList::default();
-        board.generate_all_moves(&mut move_list)?;
+        self.board.generate_all_moves(&mut move_list)?;
 
         for mv in move_list {
-            if board.make_move(mv)? {
-                let score = self.minimax(board, depth - 1)?;
+            if self.board.make_move(mv)? {
+                let score = self.minimax(depth - 1)?;
                 if score > best_score {
                     best_score = score;
                     best_move = Some(mv);
                 }
             }
 
-            board.unmake_move(mv)?;
+            self.board.unmake_move(mv)?;
         }
 
         Ok(best_move)
     }
 
-    fn minimax(&mut self, board: &mut Board, depth: u8) -> anyhow::Result<i32> {
+    fn minimax(&mut self, depth: u8) -> anyhow::Result<i32> {
         if depth == 0 {
-            return Ok(evaluate(board));
+            return Ok(evaluate(&self.board));
         }
 
-        let table_entry = self.transposition_table.probe(board.hash());
-        if table_entry.hash == board.hash() && table_entry.depth == depth {
+        let table_entry = self.transposition_table.probe(self.board.hash());
+        if table_entry.hash == self.board.hash() && table_entry.depth == depth {
             return Ok(table_entry.score);
         }
 
         let mut move_list = MoveList::default();
-        board.generate_all_moves(&mut move_list)?;
+        self.board.generate_all_moves(&mut move_list)?;
 
-        let is_maximizing = board.side_to_move() == Side::White;
+        let is_maximizing = self.board.side_to_move() == Side::White;
 
         if is_maximizing {
             let mut best_score = i32::MIN;
 
             for mv in move_list {
-                if board.make_move(mv)? {
-                    let score = self.minimax(board, depth - 1)?;
+                if self.board.make_move(mv)? {
+                    let score = self.minimax(depth - 1)?;
                     best_score = best_score.max(score);
                 }
-                board.unmake_move(mv)?;
+                self.board.unmake_move(mv)?;
             }
 
-            self.transposition_table
-                .store(SearchTableEntry::new(board.hash(), depth, best_score));
+            self.transposition_table.store(SearchTableEntry::new(
+                self.board.hash(),
+                depth,
+                best_score,
+            ));
 
             Ok(best_score)
         } else {
             let mut best_score = i32::MAX;
 
             for mv in move_list {
-                if board.make_move(mv)? {
-                    let score = self.minimax(board, depth - 1)?;
+                if self.board.make_move(mv)? {
+                    let score = self.minimax(depth - 1)?;
                     best_score = best_score.min(score);
                 }
-                board.unmake_move(mv)?;
+                self.board.unmake_move(mv)?;
             }
 
-            self.transposition_table
-                .store(SearchTableEntry::new(board.hash(), depth, best_score));
+            self.transposition_table.store(SearchTableEntry::new(
+                self.board.hash(),
+                depth,
+                best_score,
+            ));
 
             Ok(best_score)
         }

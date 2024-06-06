@@ -4,7 +4,7 @@ use anyhow::bail;
 use colored::Colorize;
 
 use crate::{
-    board::Board,
+    board::START_POSITION_FEN,
     evaluate::evaluate,
     move_generator::{Move, MoveKind, MoveList},
     perft::{perft, run_perft_tests},
@@ -14,10 +14,7 @@ use crate::{
     uci::Uci,
 };
 
-const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 pub struct Cli {
-    board: Board,
     transposition_table: TranspositionTable<PerftTableEntry>,
     search: Search,
 }
@@ -89,7 +86,7 @@ impl Cli {
             "moves" | "mv" => self.handle_moves_command(args),
             "eval" => self.handle_eval_command(),
             "search" => self.handle_search_command(args),
-            "print" => println!("{}", self.board),
+            "print" => println!("{}", self.search.board),
             "uci" => self.handle_uci_command(),
             "help" => Self::print_commands(),
             _ => println!("Invalid command"),
@@ -110,7 +107,7 @@ impl Cli {
             }
         };
 
-        let nodes = perft(&mut self.board, depth, &mut self.transposition_table).unwrap();
+        let nodes = perft(&mut self.search.board, depth, &mut self.transposition_table).unwrap();
         println!("nodes: {}", nodes);
     }
 
@@ -125,7 +122,7 @@ impl Cli {
             _ => args,
         };
 
-        if self.board.parse_fen(fen).is_err() {
+        if self.search.board.parse_fen(fen).is_err() {
             println!("Invalid FEN");
         }
     }
@@ -174,10 +171,10 @@ impl Cli {
 
             match found_move {
                 Some(mv) => {
-                    let is_legal = self.board.make_move(mv).unwrap();
+                    let is_legal = self.search.board.make_move(mv).unwrap();
                     if !is_legal {
                         println!("Move `{:?}` is not legal in this position", mv);
-                        self.board.unmake_move(mv).unwrap();
+                        self.search.board.unmake_move(mv).unwrap();
                         return;
                     }
                 }
@@ -194,7 +191,10 @@ impl Cli {
         (from, to, promotion_piece): (Square, Square, Option<PieceKind>),
     ) -> Option<Move> {
         let mut possible_moves = MoveList::default();
-        self.board.generate_all_moves(&mut possible_moves).unwrap();
+        self.search
+            .board
+            .generate_all_moves(&mut possible_moves)
+            .unwrap();
 
         for possible_move in possible_moves {
             if possible_move.from_square() == from && possible_move.to_square() == to {
@@ -213,7 +213,7 @@ impl Cli {
     }
 
     fn handle_eval_command(&self) {
-        println!("{}", evaluate(&self.board))
+        println!("{}", evaluate(&self.search.board))
     }
 
     fn handle_search_command(&mut self, args: &str) {
@@ -230,7 +230,7 @@ impl Cli {
             }
         };
 
-        let best_move = self.search.search_position(&mut self.board, depth).unwrap();
+        let best_move = self.search.search_position(depth).unwrap();
         if let Some(mv) = best_move {
             println!("{}", mv);
         } else {
@@ -239,18 +239,14 @@ impl Cli {
     }
 
     fn handle_uci_command(&self) {
-        let uci = Uci::default();
+        let uci = Uci::new(&self.search);
         uci.start_loop();
     }
 }
 
 impl Default for Cli {
     fn default() -> Self {
-        let mut board = Board::default();
-        board.parse_fen(START_POSITION_FEN).unwrap();
-
         Self {
-            board,
             transposition_table: TranspositionTable::new(256),
             search: Search::default(),
         }
