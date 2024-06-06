@@ -11,6 +11,7 @@ use crate::{
     search::Search,
     square::{PieceKind, Square},
     transposition_table::{PerftTableEntry, TranspositionTable},
+    uci::Uci,
 };
 
 const START_POSITION_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -67,6 +68,7 @@ impl Cli {
             "search <depth>".cyan()
         );
         println!("- {}: print current position", "print".cyan());
+        println!("- {}: start UCI protocol", "uci".cyan());
         println!("- {}: print this command list", "help".cyan());
 
         println!();
@@ -88,6 +90,7 @@ impl Cli {
             "eval" => self.handle_eval_command(),
             "search" => self.handle_search_command(args),
             "print" => println!("{}", self.board),
+            "uci" => self.handle_uci_command(),
             "help" => Self::print_commands(),
             _ => println!("Invalid command"),
         };
@@ -233,6 +236,11 @@ impl Cli {
         } else {
             println!("Couldn't find a move");
         }
+    }
+
+    fn handle_uci_command(&self) {
+        let uci = Uci::default();
+        uci.start_loop();
     }
 }
 

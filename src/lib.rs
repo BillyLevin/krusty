@@ -1,6 +1,7 @@
 pub mod bitboard;
 pub mod board;
 pub mod cli;
+pub mod engine_details;
 pub mod evaluate;
 pub mod generate_magics;
 pub mod magics;
@@ -11,4 +12,5 @@ pub mod prng;
 pub mod search;
 pub mod square;
 pub mod transposition_table;
+pub mod uci;
 pub mod zobrist_hash;
