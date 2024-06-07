@@ -3,9 +3,18 @@ use anyhow::bail;
 use crate::{
     bitboard::EMPTY_BB,
     board::{Board, CastlingKind, HistoryItem, Side},
-    move_generator::{pawn_attacks, Move, MoveFlag, MoveKind},
+    move_generator::{pawn_attacks, Move, MoveFlag, MoveKind, MoveList},
     square::{Piece, PieceKind, Square},
 };
+
+/// this is the information that can be extracted from a move string in long algebraic notation,
+/// e.g. `e2e4`, `e7e8q`
+#[derive(Debug, Clone, Copy)]
+pub struct MoveMetadata {
+    from: Square,
+    to: Square,
+    promotion: Option<PieceKind>,
+}
 
 const fn init_castling_permissions_table() -> [u8; 64] {
     let mut table = [15; 64];
@@ -225,5 +234,57 @@ impl Board {
         };
 
         Ok(())
+    }
+
+    pub fn get_move_metadata(&self, move_str: &str) -> anyhow::Result<MoveMetadata> {
+        if move_str.len() < 4 {
+            bail!("Move string `{}` is invalid", move_str)
+        }
+
+        let mut chars = move_str.chars();
+        let from_file = chars.next().unwrap().try_into()?;
+        let from_rank = chars.next().unwrap().try_into()?;
+        let to_file = chars.next().unwrap().try_into()?;
+        let to_rank = chars.next().unwrap().try_into()?;
+
+        let from = Square::new(from_rank, from_file);
+        let to = Square::new(to_rank, to_file);
+
+        let promotion: Option<PieceKind> = match chars.next() {
+            Some(piece) => Some(piece.try_into()?),
+            None => None,
+        };
+
+        Ok(MoveMetadata {
+            from,
+            to,
+            promotion,
+        })
+    }
+
+    pub fn find_matching_move(&self, move_metadata: MoveMetadata) -> Option<Move> {
+        let MoveMetadata {
+            from,
+            to,
+            promotion,
+        } = move_metadata;
+
+        let mut possible_moves = MoveList::default();
+        self.generate_all_moves(&mut possible_moves).unwrap();
+
+        for possible_move in possible_moves {
+            if possible_move.from_square() == from && possible_move.to_square() == to {
+                if possible_move.kind() == MoveKind::Promotion {
+                    let promotion_piece = promotion.expect("promotion piece missing");
+                    if promotion_piece == possible_move.flag().into() {
+                        return Some(possible_move);
+                    }
+                } else {
+                    return Some(possible_move);
+                }
+            }
+        }
+
+        None
     }
 }

@@ -1,15 +1,12 @@
 use std::io::{self, BufRead, Write};
 
-use anyhow::bail;
 use colored::Colorize;
 
 use crate::{
     board::START_POSITION_FEN,
     evaluate::evaluate,
-    move_generator::{Move, MoveKind, MoveList},
     perft::{perft, run_perft_tests},
     search::Search,
-    square::{PieceKind, Square},
     transposition_table::{PerftTableEntry, TranspositionTable},
     uci::Uci,
 };
@@ -134,28 +131,8 @@ impl Cli {
         }
 
         let moves: Result<Vec<_>, _> = args
-            .split(' ')
-            .map(|move_str| {
-                if move_str.len() < 4 {
-                    bail!("Move string `{}` is invalid", move_str)
-                }
-
-                let mut chars = move_str.chars();
-                let from_file = chars.next().unwrap().try_into()?;
-                let from_rank = chars.next().unwrap().try_into()?;
-                let to_file = chars.next().unwrap().try_into()?;
-                let to_rank = chars.next().unwrap().try_into()?;
-
-                let from = Square::new(from_rank, from_file);
-                let to = Square::new(to_rank, to_file);
-
-                let promotion: Option<PieceKind> = match chars.next() {
-                    Some(piece) => Some(piece.try_into()?),
-                    None => None,
-                };
-
-                Ok((from, to, promotion))
-            })
+            .split_whitespace()
+            .map(|move_str| self.search.board.get_move_metadata(move_str))
             .collect();
 
         let moves = match moves {
@@ -167,7 +144,7 @@ impl Cli {
         };
 
         for mv in moves {
-            let found_move = self.find_matching_move(mv);
+            let found_move = self.search.board.find_matching_move(mv);
 
             match found_move {
                 Some(mv) => {
@@ -184,32 +161,6 @@ impl Cli {
                 }
             }
         }
-    }
-
-    fn find_matching_move(
-        &self,
-        (from, to, promotion_piece): (Square, Square, Option<PieceKind>),
-    ) -> Option<Move> {
-        let mut possible_moves = MoveList::default();
-        self.search
-            .board
-            .generate_all_moves(&mut possible_moves)
-            .unwrap();
-
-        for possible_move in possible_moves {
-            if possible_move.from_square() == from && possible_move.to_square() == to {
-                if possible_move.kind() == MoveKind::Promotion {
-                    let promotion_piece = promotion_piece.expect("promotion piece missing");
-                    if promotion_piece == possible_move.flag().into() {
-                        return Some(possible_move);
-                    }
-                } else {
-                    return Some(possible_move);
-                }
-            }
-        }
-
-        None
     }
 
     fn handle_eval_command(&self) {
@@ -238,8 +189,8 @@ impl Cli {
         }
     }
 
-    fn handle_uci_command(&self) {
-        let uci = Uci::new(&self.search);
+    fn handle_uci_command(&mut self) {
+        let mut uci = Uci::new(&mut self.search);
         uci.start_loop();
     }
 }
