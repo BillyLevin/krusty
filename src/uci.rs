@@ -104,7 +104,5 @@ impl<'a> Uci<'a> {
                 }
             }
         };
-
-        println!("{}", self.search.board);
     }
 }
