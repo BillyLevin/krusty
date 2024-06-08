@@ -279,6 +279,8 @@ impl Board {
     pub fn parse_fen(&mut self, fen: &str) -> anyhow::Result<()> {
         self.reset();
 
+        let fen = fen.trim();
+
         let fields: Vec<&str> = fen.split(' ').collect();
 
         if fields.len() != 6 {

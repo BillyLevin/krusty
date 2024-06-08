@@ -51,15 +51,13 @@ impl<'a> Uci<'a> {
     }
 
     fn handle_position_command(&mut self, args: &str) {
-        let mut args = args.split_whitespace();
+        let moves_start_index = args.find("moves");
 
-        let fen = match args.next() {
-            Some(arg) => arg,
-            None => {
-                println!("No FEN provideed");
-                return;
-            }
-        };
+        let fen = match moves_start_index {
+            Some(index) => &args[..index],
+            None => args,
+        }
+        .trim();
 
         let fen = match fen {
             "startpos" => START_POSITION_FEN,
@@ -68,38 +66,39 @@ impl<'a> Uci<'a> {
 
         if self.search.board.parse_fen(fen).is_err() {
             println!("Invalid FEN");
+            return;
         }
 
-        if let Some(arg) = args.next() {
-            if arg == "moves" {
-                let moves: Result<Vec<_>, _> = args
-                    .map(|move_str| self.search.board.get_move_metadata(move_str))
-                    .collect();
+        if let Some(index) = moves_start_index {
+            let start_index = index + "moves ".len();
+            let moves: Result<Vec<_>, _> = args[start_index..]
+                .split_whitespace()
+                .map(|move_str| self.search.board.get_move_metadata(move_str))
+                .collect();
 
-                let moves = match moves {
-                    Ok(m) => m,
-                    Err(error) => {
-                        println!("Invalid move: {}", error);
-                        return;
-                    }
-                };
+            let moves = match moves {
+                Ok(m) => m,
+                Err(error) => {
+                    println!("Invalid move: {}", error);
+                    return;
+                }
+            };
 
-                for mv in moves {
-                    let found_move = self.search.board.find_matching_move(mv);
+            for mv in moves {
+                let found_move = self.search.board.find_matching_move(mv);
 
-                    match found_move {
-                        Some(mv) => {
-                            let is_legal = self.search.board.make_move(mv).unwrap();
-                            if !is_legal {
-                                println!("Move `{:?}` is not legal in this position", mv);
-                                self.search.board.unmake_move(mv).unwrap();
-                                return;
-                            }
-                        }
-                        None => {
+                match found_move {
+                    Some(mv) => {
+                        let is_legal = self.search.board.make_move(mv).unwrap();
+                        if !is_legal {
                             println!("Move `{:?}` is not legal in this position", mv);
+                            self.search.board.unmake_move(mv).unwrap();
                             return;
                         }
+                    }
+                    None => {
+                        println!("Move `{:?}` is not legal in this position", mv);
+                        return;
                     }
                 }
             }
