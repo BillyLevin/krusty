@@ -79,6 +79,7 @@ impl Search {
             self.board.unmake_move(mv)?;
         }
 
+        println!("info depth {} score {}", depth, best_score);
         Ok(best_move)
     }
 
