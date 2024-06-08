@@ -1,9 +1,11 @@
 use std::io::{self, BufRead};
 
+use anyhow::{bail, Context};
+
 use crate::{
     board::START_POSITION_FEN,
     engine_details::{ENGINE_AUTHOR, ENGINE_NAME, ENGINE_VERSION},
-    search::Search,
+    search::{Search, SearchDepth, SearchInfo},
 };
 
 pub struct Uci<'a> {
@@ -40,6 +42,7 @@ impl<'a> Uci<'a> {
             "uci" => Self::handle_uci_command(),
             "isready" => println!("readyok"),
             "position" => self.handle_position_command(args),
+            "go" => self.handle_go_command(args),
             _ => (),
         };
     }
@@ -102,6 +105,41 @@ impl<'a> Uci<'a> {
                     }
                 }
             }
-        };
+        }
+    }
+
+    fn handle_go_command(&mut self, args: &str) {
+        let mut args = args.split_whitespace();
+
+        let mut search_info = SearchInfo::default();
+
+        if let Some(arg) = args.next() {
+            if arg == "depth" {
+                let depth: SearchDepth = match args.next().try_into() {
+                    Ok(depth) => depth,
+                    Err(error) => {
+                        println!("{}", error);
+                        return;
+                    }
+                };
+
+                search_info.depth = depth;
+            }
+        }
+
+        self.search.set_search_info(search_info)
+    }
+}
+
+impl TryFrom<Option<&str>> for SearchDepth {
+    type Error = anyhow::Error;
+
+    fn try_from(depth: Option<&str>) -> Result<Self, Self::Error> {
+        if let Some(depth) = depth {
+            let depth: u8 = depth.parse().context("invalid depth provided")?;
+            Ok(SearchDepth::Finite(depth))
+        } else {
+            bail!("no depth provided")
+        }
     }
 }

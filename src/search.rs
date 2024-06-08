@@ -5,9 +5,30 @@ use crate::{
     transposition_table::{SearchTableEntry, TranspositionTable},
 };
 
+#[derive(Debug)]
+pub enum SearchDepth {
+    Finite(u8),
+    Infinite,
+}
+
+#[derive(Debug)]
+pub struct SearchInfo {
+    pub depth: SearchDepth,
+}
+
 pub struct Search {
     transposition_table: TranspositionTable<SearchTableEntry>,
     pub board: Board,
+
+    search_info: SearchInfo,
+}
+
+impl Default for SearchInfo {
+    fn default() -> Self {
+        Self {
+            depth: SearchDepth::Infinite,
+        }
+    }
 }
 
 impl Default for Search {
@@ -18,6 +39,7 @@ impl Default for Search {
         Self {
             transposition_table: TranspositionTable::new(64),
             board,
+            search_info: SearchInfo::default(),
         }
     }
 }
@@ -97,5 +119,9 @@ impl Search {
 
             Ok(best_score)
         }
+    }
+
+    pub fn set_search_info(&mut self, search_info: SearchInfo) {
+        self.search_info = search_info
     }
 }
