@@ -6,7 +6,7 @@ use crate::{
     board::START_POSITION_FEN,
     evaluate::evaluate,
     perft::{perft, run_perft_tests},
-    search::Search,
+    search::{Search, SearchDepth},
     transposition_table::{PerftTableEntry, TranspositionTable},
     uci::Uci,
 };
@@ -181,7 +181,11 @@ impl Cli {
             }
         };
 
-        let best_move = self.search.search_position(depth).unwrap();
+        let best_move = self
+            .search
+            .search_position(SearchDepth::Finite(depth))
+            .unwrap();
+
         if let Some(mv) = best_move {
             println!("{}", mv);
         } else {

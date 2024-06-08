@@ -5,13 +5,26 @@ use crate::{
     transposition_table::{SearchTableEntry, TranspositionTable},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum SearchDepth {
     Finite(u8),
     Infinite,
 }
 
-#[derive(Debug)]
+impl SearchDepth {
+    const MAX: u8 = 64;
+}
+
+impl From<SearchDepth> for u8 {
+    fn from(value: SearchDepth) -> Self {
+        match value {
+            SearchDepth::Finite(depth) => depth,
+            SearchDepth::Infinite => SearchDepth::MAX,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct SearchInfo {
     pub depth: SearchDepth,
 }
@@ -45,7 +58,9 @@ impl Default for Search {
 }
 
 impl Search {
-    pub fn search_position(&mut self, depth: u8) -> anyhow::Result<Option<Move>> {
+    pub fn search_position(&mut self, depth: SearchDepth) -> anyhow::Result<Option<Move>> {
+        let depth: u8 = depth.into();
+
         let mut best_score = i32::MIN;
         let mut best_move = None;
 
