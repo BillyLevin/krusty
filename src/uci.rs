@@ -3,9 +3,9 @@ use std::io::{self, BufRead};
 use anyhow::{bail, Context};
 
 use crate::{
-    board::START_POSITION_FEN,
+    board::{Side, START_POSITION_FEN},
     engine_details::{ENGINE_AUTHOR, ENGINE_NAME, ENGINE_VERSION},
-    search::{Search, SearchDepth, SearchInfo},
+    search::{Search, SearchDepth, SearchInfo, TimeRemaining},
 };
 
 pub struct Uci<'a> {
@@ -113,17 +113,46 @@ impl<'a> Uci<'a> {
 
         let mut search_info = SearchInfo::default();
 
-        if let Some(arg) = args.next() {
-            if arg == "depth" {
-                let depth: SearchDepth = match args.next().try_into() {
-                    Ok(depth) => depth,
-                    Err(error) => {
-                        println!("{}", error);
-                        return;
-                    }
-                };
+        while let Some(arg) = args.next() {
+            match arg {
+                "depth" => {
+                    let depth: SearchDepth = match args.next().try_into() {
+                        Ok(depth) => depth,
+                        Err(error) => {
+                            println!("{}", error);
+                            return;
+                        }
+                    };
 
-                search_info.depth = depth;
+                    search_info.depth = depth;
+                }
+                "wtime" => {
+                    if self.search.board.side_to_move() == Side::White {
+                        let time_remaining = match args.next().try_into() {
+                            Ok(time) => time,
+                            Err(error) => {
+                                println!("{}", error);
+                                return;
+                            }
+                        };
+
+                        search_info.time_remaining = time_remaining;
+                    }
+                }
+                "btime" => {
+                    if self.search.board.side_to_move() == Side::Black {
+                        let time_remaining = match args.next().try_into() {
+                            Ok(time) => time,
+                            Err(error) => {
+                                println!("{}", error);
+                                return;
+                            }
+                        };
+
+                        search_info.time_remaining = time_remaining;
+                    }
+                }
+                _ => (),
             }
         }
 
@@ -153,10 +182,23 @@ impl TryFrom<Option<&str>> for SearchDepth {
 
     fn try_from(depth: Option<&str>) -> Result<Self, Self::Error> {
         if let Some(depth) = depth {
-            let depth: u8 = depth.parse().context("invalid depth provided")?;
+            let depth = depth.parse().context("invalid depth provided")?;
             Ok(SearchDepth::Finite(depth))
         } else {
             bail!("no depth provided")
+        }
+    }
+}
+
+impl TryFrom<Option<&str>> for TimeRemaining {
+    type Error = anyhow::Error;
+
+    fn try_from(time: Option<&str>) -> Result<Self, Self::Error> {
+        if let Some(time) = time {
+            let time = time.parse().context("invalid time provided")?;
+            Ok(TimeRemaining::Finite(time))
+        } else {
+            bail!("no time provided")
         }
     }
 }

@@ -11,6 +11,12 @@ pub enum SearchDepth {
     Infinite,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum TimeRemaining {
+    Finite(u64),
+    Infinite,
+}
+
 impl SearchDepth {
     const MAX: u8 = 64;
 }
@@ -27,6 +33,7 @@ impl From<SearchDepth> for u8 {
 #[derive(Debug, Clone, Copy)]
 pub struct SearchInfo {
     pub depth: SearchDepth,
+    pub time_remaining: TimeRemaining,
 }
 
 pub struct Search {
@@ -40,6 +47,7 @@ impl Default for SearchInfo {
     fn default() -> Self {
         Self {
             depth: SearchDepth::Infinite,
+            time_remaining: TimeRemaining::Infinite,
         }
     }
 }
