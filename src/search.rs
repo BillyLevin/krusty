@@ -44,13 +44,14 @@ impl From<SearchDepth> for u8 {
 pub struct SearchInfo {
     pub depth: SearchDepth,
     pub time_remaining: TimeRemaining,
+    pub ply: u8,
 }
 
 pub struct Search {
     transposition_table: TranspositionTable<SearchTableEntry>,
     pub board: Board,
 
-    search_info: SearchInfo,
+    pub search_info: SearchInfo,
 }
 
 impl Default for SearchInfo {
@@ -58,6 +59,7 @@ impl Default for SearchInfo {
         Self {
             depth: SearchDepth::Infinite,
             time_remaining: TimeRemaining::Infinite,
+            ply: 0,
         }
     }
 }
@@ -116,7 +118,7 @@ impl Search {
         }
 
         let table_entry = self.transposition_table.probe(self.board.hash());
-        if let Some(score) = table_entry.get(self.board.hash(), depth, self.board.ply()) {
+        if let Some(score) = table_entry.get(self.board.hash(), depth, self.search_info.ply) {
             return Ok(score);
         }
 
@@ -135,15 +137,18 @@ impl Search {
                     continue;
                 }
 
+                self.search_info.ply += 1;
                 legal_move_count += 1;
 
                 let score = self.minimax(depth - 1, best_move)?;
+
                 self.board.unmake_move(mv)?;
+                self.search_info.ply -= 1;
 
                 if score > best_score {
                     best_score = score;
 
-                    if self.board.ply() == 0 {
+                    if self.search_info.ply == 0 {
                         *best_move = mv;
                     }
                 }
@@ -152,7 +157,7 @@ impl Search {
             // no legal moves means it's either checkmate or stalemate
             if legal_move_count == 0 {
                 if self.board.is_in_check(self.board.side_to_move()) {
-                    return Ok(i32::MIN + self.board.ply() as i32);
+                    return Ok(i32::MIN + self.search_info.ply as i32);
                 } else {
                     return Ok(0);
                 }
@@ -162,7 +167,7 @@ impl Search {
                 self.board.hash(),
                 depth,
                 best_score,
-                self.board.ply(),
+                self.search_info.ply,
             ));
 
             Ok(best_score)
@@ -176,15 +181,18 @@ impl Search {
                     continue;
                 }
 
+                self.search_info.ply += 1;
                 legal_move_count += 1;
 
                 let score = self.minimax(depth - 1, best_move)?;
+
                 self.board.unmake_move(mv)?;
+                self.search_info.ply -= 1;
 
                 if score < best_score {
                     best_score = score;
 
-                    if self.board.ply() == 0 {
+                    if self.search_info.ply == 0 {
                         *best_move = mv;
                     }
                 }
@@ -193,7 +201,7 @@ impl Search {
             // no legal moves means it's either checkmate or stalemate
             if legal_move_count == 0 {
                 if self.board.is_in_check(self.board.side_to_move()) {
-                    return Ok(i32::MAX - self.board.ply() as i32);
+                    return Ok(i32::MAX - self.search_info.ply as i32);
                 } else {
                     return Ok(0);
                 }
@@ -203,7 +211,7 @@ impl Search {
                 self.board.hash(),
                 depth,
                 best_score,
-                self.board.ply(),
+                self.search_info.ply,
             ));
 
             Ok(best_score)
