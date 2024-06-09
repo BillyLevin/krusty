@@ -53,18 +53,35 @@ impl<'a> Uci<'a> {
         println!("uciok");
     }
 
+    // possible examples:
+    // position startpos
+    // position fen <fen>
+    // position startpos moves e2e4 e7e5 ...
+    // position fen <fen> moves e2e4 e7e5 ...
     fn handle_position_command(&mut self, args: &str) {
+        let position_kind = match args.split_whitespace().nth(0) {
+            Some(kind) => kind,
+            None => {
+                println!("Invalid `position` command");
+                return;
+            }
+        };
+
         let moves_start_index = args.find("moves");
 
-        let fen = match moves_start_index {
-            Some(index) => &args[..index],
-            None => args,
-        }
-        .trim();
-
-        let fen = match fen {
+        let fen = match position_kind {
             "startpos" => START_POSITION_FEN,
-            _ => fen,
+            "fen" => {
+                let fen_start_index = "fen".len() + 1;
+                match moves_start_index {
+                    Some(index) => &args[fen_start_index..(index - 1)],
+                    None => &args[fen_start_index..],
+                }
+            }
+            _ => {
+                println!("Invalid `position` command");
+                return;
+            }
         };
 
         if self.search.board.parse_fen(fen).is_err() {
