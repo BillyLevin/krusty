@@ -24,3 +24,4 @@ chess engine written in rust
 - [ ] quiescence search
 - [ ] piece mobility
 - [ ] opening book
+- [ ] principal variation

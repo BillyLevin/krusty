@@ -1,9 +1,19 @@
 use crate::{
     board::{Board, Side, START_POSITION_FEN},
-    evaluate::evaluate,
+    evaluate::{
+        evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
+    },
     move_generator::{Move, MoveList},
     transposition_table::{SearchTableEntry, TranspositionTable},
 };
+
+// if the score is higher than this, it's definitely checkmate
+pub const CHECKMATE_THRESHOLD: i32 = PAWN_VALUE * 8
+    + KNIGHT_VALUE * 8
+    + BISHOP_VALUE * 8
+    + ROOK_VALUE * 8
+    + QUEEN_VALUE * 8
+    + KING_VALUE;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SearchDepth {
@@ -66,39 +76,48 @@ impl Default for Search {
 }
 
 impl Search {
-    pub fn search_position(&mut self, depth: SearchDepth) -> anyhow::Result<Option<Move>> {
+    pub fn search_position(&mut self, depth: SearchDepth) -> anyhow::Result<Move> {
         let depth: u8 = depth.into();
 
-        let mut best_score = i32::MIN;
-        let mut best_move = None;
+        let mut best_move = Move::NULL_MOVE;
 
-        let mut move_list = MoveList::default();
-        self.board.generate_all_moves(&mut move_list)?;
+        let is_maximizing = self.board.side_to_move() == Side::White;
 
-        for mv in move_list {
-            if self.board.make_move(mv)? {
-                let score = self.minimax(depth - 1)?;
-                if score > best_score {
-                    best_score = score;
-                    best_move = Some(mv);
-                }
+        if is_maximizing {
+            let mut best_score = i32::MIN;
+            let score = self.minimax(depth, &mut best_move)?;
+            if score > best_score {
+                best_score = score;
             }
-
-            self.board.unmake_move(mv)?;
+            println!(
+                "info depth {} score {}",
+                depth,
+                Self::get_score_string(best_score, true)
+            );
+        } else {
+            let mut best_score = i32::MAX;
+            let score = self.minimax(depth, &mut best_move)?;
+            if score < best_score {
+                best_score = score;
+            }
+            println!(
+                "info depth {} score {}",
+                depth,
+                Self::get_score_string(best_score, false)
+            );
         }
 
-        println!("info depth {} score {}", depth, best_score);
         Ok(best_move)
     }
 
-    fn minimax(&mut self, depth: u8) -> anyhow::Result<i32> {
+    fn minimax(&mut self, depth: u8, best_move: &mut Move) -> anyhow::Result<i32> {
         if depth == 0 {
             return Ok(evaluate(&self.board));
         }
 
         let table_entry = self.transposition_table.probe(self.board.hash());
-        if table_entry.hash == self.board.hash() && table_entry.depth == depth {
-            return Ok(table_entry.score);
+        if let Some(score) = table_entry.get(self.board.hash(), depth, self.board.ply()) {
+            return Ok(score);
         }
 
         let mut move_list = MoveList::default();
@@ -108,37 +127,83 @@ impl Search {
 
         if is_maximizing {
             let mut best_score = i32::MIN;
+            let mut legal_move_count = 0;
 
             for mv in move_list {
-                if self.board.make_move(mv)? {
-                    let score = self.minimax(depth - 1)?;
-                    best_score = best_score.max(score);
+                if !self.board.make_move(mv)? {
+                    self.board.unmake_move(mv)?;
+                    continue;
                 }
+
+                legal_move_count += 1;
+
+                let score = self.minimax(depth - 1, best_move)?;
                 self.board.unmake_move(mv)?;
+
+                if score > best_score {
+                    best_score = score;
+
+                    if self.board.ply() == 0 {
+                        *best_move = mv;
+                    }
+                }
+            }
+
+            // no legal moves means it's either checkmate or stalemate
+            if legal_move_count == 0 {
+                if self.board.is_in_check(self.board.side_to_move()) {
+                    return Ok(i32::MIN + self.board.ply() as i32);
+                } else {
+                    return Ok(0);
+                }
             }
 
             self.transposition_table.store(SearchTableEntry::new(
                 self.board.hash(),
                 depth,
                 best_score,
+                self.board.ply(),
             ));
 
             Ok(best_score)
         } else {
             let mut best_score = i32::MAX;
+            let mut legal_move_count = 0;
 
             for mv in move_list {
-                if self.board.make_move(mv)? {
-                    let score = self.minimax(depth - 1)?;
-                    best_score = best_score.min(score);
+                if !self.board.make_move(mv)? {
+                    self.board.unmake_move(mv)?;
+                    continue;
                 }
+
+                legal_move_count += 1;
+
+                let score = self.minimax(depth - 1, best_move)?;
                 self.board.unmake_move(mv)?;
+
+                if score < best_score {
+                    best_score = score;
+
+                    if self.board.ply() == 0 {
+                        *best_move = mv;
+                    }
+                }
+            }
+
+            // no legal moves means it's either checkmate or stalemate
+            if legal_move_count == 0 {
+                if self.board.is_in_check(self.board.side_to_move()) {
+                    return Ok(i32::MAX - self.board.ply() as i32);
+                } else {
+                    return Ok(0);
+                }
             }
 
             self.transposition_table.store(SearchTableEntry::new(
                 self.board.hash(),
                 depth,
                 best_score,
+                self.board.ply(),
             ));
 
             Ok(best_score)
@@ -147,5 +212,29 @@ impl Search {
 
     pub fn set_search_info(&mut self, search_info: SearchInfo) {
         self.search_info = search_info
+    }
+
+    pub fn get_score_string(score: i32, is_maximizing: bool) -> String {
+        if score > CHECKMATE_THRESHOLD {
+            let ply_to_mate = i32::MAX.abs_diff(score) as i32;
+            let moves_to_mate = ply_to_mate / 2 + ply_to_mate % 2;
+            let moves_to_mate = if is_maximizing {
+                moves_to_mate
+            } else {
+                -moves_to_mate
+            };
+            format!("mate {}", moves_to_mate)
+        } else if score < -CHECKMATE_THRESHOLD {
+            let ply_to_mate = i32::MIN.abs_diff(score) as i32;
+            let moves_to_mate = ply_to_mate / 2 + ply_to_mate % 2;
+            let moves_to_mate = if is_maximizing {
+                -moves_to_mate
+            } else {
+                moves_to_mate
+            };
+            format!("mate {}", moves_to_mate)
+        } else {
+            format!("cp {}", score)
+        }
     }
 }

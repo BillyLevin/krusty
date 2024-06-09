@@ -186,11 +186,7 @@ impl Cli {
             .search_position(SearchDepth::Finite(depth))
             .unwrap();
 
-        if let Some(mv) = best_move {
-            println!("{}", mv);
-        } else {
-            println!("Couldn't find a move");
-        }
+        println!("{}", best_move);
     }
 
     fn handle_uci_command(&mut self) {

@@ -57,10 +57,12 @@ impl From<u32> for MoveFlag {
 // 3 bits: move flag
 // = 17 bits to represent the move
 // the remaining 15 bits will be used for move ordering later on
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub struct Move(u32);
 
 impl Move {
+    pub const NULL_MOVE: Move = Move(0);
+
     const SQUARE_MASK: u32 = 0b00111111;
     const MOVE_KIND_MASK: u32 = 0b00000011;
     const MOVE_FLAG_MASK: u32 = 0b00000111;
@@ -89,10 +91,18 @@ impl Move {
     pub fn flag(&self) -> MoveFlag {
         ((self.0 >> 14) & Self::MOVE_FLAG_MASK).into()
     }
+
+    pub fn is_null(&self) -> bool {
+        *self == Self::NULL_MOVE
+    }
 }
 
 impl Display for Move {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_null() {
+            return write!(f, "0000");
+        }
+
         let squares = format!("{:?}{:?}", self.from_square(), self.to_square());
         write!(f, "{}", squares.to_lowercase())?;
 

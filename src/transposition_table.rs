@@ -1,3 +1,5 @@
+use crate::search::CHECKMATE_THRESHOLD;
+
 pub trait TableEntry {
     fn hash(&self) -> u64;
 }
@@ -41,8 +43,38 @@ impl TableEntry for PerftTableEntry {
 }
 
 impl SearchTableEntry {
-    pub fn new(hash: u64, depth: u8, score: i32) -> Self {
+    pub fn new(hash: u64, depth: u8, score: i32, ply: u8) -> Self {
+        let mut score = score;
+
+        if score > CHECKMATE_THRESHOLD {
+            score += ply as i32;
+        }
+
+        if score < CHECKMATE_THRESHOLD {
+            score -= ply as i32;
+        }
+
         Self { hash, depth, score }
+    }
+
+    pub fn get(&self, hash: u64, depth: u8, ply: u8) -> Option<i32> {
+        let mut score = None;
+
+        if self.hash() == hash && self.depth == depth {
+            let mut entry_score = self.score;
+
+            if entry_score > CHECKMATE_THRESHOLD {
+                entry_score -= ply as i32;
+            }
+
+            if entry_score < -CHECKMATE_THRESHOLD {
+                entry_score += ply as i32;
+            }
+
+            score = Some(entry_score);
+        }
+
+        score
     }
 }
 

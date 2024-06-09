@@ -159,14 +159,7 @@ impl<'a> Uci<'a> {
         self.search.set_search_info(search_info);
 
         let best_move = match self.search.search_position(search_info.depth) {
-            Ok(mv) => match mv {
-                Some(mv) => mv,
-                None => {
-                    // TODO: better handling for null moves
-                    println!("0000");
-                    return;
-                }
-            },
+            Ok(mv) => mv,
             Err(error) => {
                 println!("{}", error);
                 return;

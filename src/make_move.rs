@@ -64,6 +64,7 @@ impl Board {
             hash: old_hash,
         };
 
+        self.increment_ply();
         self.increment_clock();
 
         // due to the behaviour of XOR (a ^ b ^ b == a), calling the hash function with the same square will
@@ -181,6 +182,8 @@ impl Board {
         self.set_en_passant_square(history_item.en_passant_square);
         self.set_halfmove_clock(history_item.halfmove_clock);
         self.set_hash(history_item.hash);
+
+        self.decrement_ply();
 
         self.switch_side();
 

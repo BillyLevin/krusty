@@ -113,6 +113,8 @@ pub struct Board {
 
     hasher: ZobristHasher,
     hash: u64,
+
+    ply: u8,
 }
 
 impl Index<Square> for BoardPieces {
@@ -164,6 +166,8 @@ impl Default for Board {
 
             hasher: ZobristHasher::default(),
             hash: 0,
+
+            ply: 0,
         }
     }
 }
@@ -487,6 +491,18 @@ impl Board {
 
     pub fn set_hash(&mut self, hash: u64) {
         self.hash = hash
+    }
+
+    pub fn ply(&self) -> u8 {
+        self.ply
+    }
+
+    pub fn increment_ply(&mut self) {
+        self.ply += 1;
+    }
+
+    pub fn decrement_ply(&mut self) {
+        self.ply -= 1;
     }
 }
 
