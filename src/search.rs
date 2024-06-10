@@ -4,6 +4,7 @@ use crate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
     move_generator::{Move, MoveList},
+    time_management::SearchTimer,
     transposition_table::{SearchTableEntry, TranspositionTable},
 };
 
@@ -21,12 +22,6 @@ pub enum SearchDepth {
     Infinite,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum TimeRemaining {
-    Finite(u64),
-    Infinite,
-}
-
 impl SearchDepth {
     const MAX: u8 = 64;
 }
@@ -40,11 +35,11 @@ impl From<SearchDepth> for u8 {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
-    pub depth: SearchDepth,
-    pub time_remaining: TimeRemaining,
+    pub depth: u8,
     pub ply: u8,
+    pub nodes_searched: u64,
 }
 
 pub struct Search {
@@ -52,16 +47,8 @@ pub struct Search {
     pub board: Board,
 
     pub search_info: SearchInfo,
-}
-
-impl Default for SearchInfo {
-    fn default() -> Self {
-        Self {
-            depth: SearchDepth::Infinite,
-            time_remaining: TimeRemaining::Infinite,
-            ply: 0,
-        }
-    }
+    pub timer: SearchTimer,
+    pub max_depth: u8,
 }
 
 impl Default for Search {
@@ -73,13 +60,15 @@ impl Default for Search {
             transposition_table: TranspositionTable::new(64),
             board,
             search_info: SearchInfo::default(),
+            timer: SearchTimer::default(),
+            max_depth: SearchDepth::MAX,
         }
     }
 }
 
 impl Search {
-    pub fn search_position(&mut self, depth: SearchDepth) -> anyhow::Result<Move> {
-        let depth: u8 = depth.into();
+    pub fn search_position(&mut self) -> anyhow::Result<Move> {
+        let depth = self.max_depth;
 
         let mut best_move = Move::NULL_MOVE;
 
@@ -120,6 +109,13 @@ impl Search {
         let table_entry = self.transposition_table.probe(self.board.hash());
         if let Some(score) = table_entry.get(self.board.hash(), depth, self.search_info.ply) {
             return Ok(score);
+        }
+
+        self.search_info.nodes_searched += 1;
+
+        // check move time expiry every 2048 nodes
+        if (self.search_info.nodes_searched & 2047) == 0 && self.timer.is_time_up() {
+            return Ok(0);
         }
 
         let mut move_list = MoveList::default();
@@ -216,10 +212,6 @@ impl Search {
 
             Ok(best_score)
         }
-    }
-
-    pub fn set_search_info(&mut self, search_info: SearchInfo) {
-        self.search_info = search_info
     }
 
     pub fn get_score_string(score: i32, is_maximizing: bool) -> String {

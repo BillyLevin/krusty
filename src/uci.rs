@@ -5,7 +5,7 @@ use anyhow::{bail, Context};
 use crate::{
     board::{Side, START_POSITION_FEN},
     engine_details::{ENGINE_AUTHOR, ENGINE_NAME, ENGINE_VERSION},
-    search::{Search, SearchDepth, SearchInfo, TimeRemaining},
+    search::{Search, SearchDepth},
 };
 
 pub struct Uci<'a> {
@@ -128,54 +128,56 @@ impl<'a> Uci<'a> {
     fn handle_go_command(&mut self, args: &str) {
         let mut args = args.split_whitespace();
 
-        let mut search_info = SearchInfo::default();
+        let mut time_remaining = None;
+        let increment = 0;
+        let mut max_depth = SearchDepth::Infinite;
 
         while let Some(arg) = args.next() {
             match arg {
                 "depth" => {
-                    let depth: SearchDepth = match args.next().try_into() {
+                    max_depth = match args.next().try_into() {
                         Ok(depth) => depth,
                         Err(error) => {
                             println!("{}", error);
                             return;
                         }
                     };
-
-                    search_info.depth = depth;
                 }
                 "wtime" => {
                     if self.search.board.side_to_move() == Side::White {
-                        let time_remaining = match args.next().try_into() {
-                            Ok(time) => time,
-                            Err(error) => {
-                                println!("{}", error);
+                        time_remaining = match args.next() {
+                            Some(time) => time.parse::<u128>().ok(),
+                            None => {
+                                println!("missing wtime value");
                                 return;
                             }
                         };
-
-                        search_info.time_remaining = time_remaining;
                     }
                 }
                 "btime" => {
                     if self.search.board.side_to_move() == Side::Black {
-                        let time_remaining = match args.next().try_into() {
-                            Ok(time) => time,
-                            Err(error) => {
-                                println!("{}", error);
+                        time_remaining = match args.next() {
+                            Some(time) => time.parse::<u128>().ok(),
+                            None => {
+                                println!("missing btime value");
                                 return;
                             }
                         };
-
-                        search_info.time_remaining = time_remaining;
                     }
                 }
                 _ => (),
             }
         }
 
-        self.search.set_search_info(search_info);
+        self.search.max_depth = max_depth.into();
 
-        let best_move = match self.search.search_position(search_info.depth) {
+        self.search
+            .timer
+            .initialize(time_remaining, increment, None);
+
+        self.search.timer.start();
+
+        let best_move = match self.search.search_position() {
             Ok(mv) => mv,
             Err(error) => {
                 println!("{}", error);
@@ -196,19 +198,6 @@ impl TryFrom<Option<&str>> for SearchDepth {
             Ok(SearchDepth::Finite(depth))
         } else {
             bail!("no depth provided")
-        }
-    }
-}
-
-impl TryFrom<Option<&str>> for TimeRemaining {
-    type Error = anyhow::Error;
-
-    fn try_from(time: Option<&str>) -> Result<Self, Self::Error> {
-        if let Some(time) = time {
-            let time = time.parse().context("invalid time provided")?;
-            Ok(TimeRemaining::Finite(time))
-        } else {
-            bail!("no time provided")
         }
     }
 }

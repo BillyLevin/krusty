@@ -11,6 +11,7 @@ pub mod perft;
 pub mod prng;
 pub mod search;
 pub mod square;
+pub mod time_management;
 pub mod transposition_table;
 pub mod uci;
 pub mod zobrist_hash;
