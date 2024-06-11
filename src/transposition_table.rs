@@ -50,7 +50,7 @@ impl SearchTableEntry {
             score += ply as i32;
         }
 
-        if score < CHECKMATE_THRESHOLD {
+        if score < -CHECKMATE_THRESHOLD {
             score -= ply as i32;
         }
 
