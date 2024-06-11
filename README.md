@@ -16,7 +16,7 @@ chess engine written in rust
 - [x] basic search
 - [x] basic material evaluation
 - [ ] time management
-- [ ] iterative deepening
+- [x] iterative deepening
 - [x] integrate transposition table with search
 - [ ] alpha-beta pruning
 - [ ] move ordering
