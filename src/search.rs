@@ -114,7 +114,11 @@ impl Search {
         self.search_info.nodes_searched += 1;
 
         // check move time expiry every 2048 nodes
-        if (self.search_info.nodes_searched & 2047) == 0 && self.timer.is_time_up() {
+        if (self.search_info.nodes_searched & 2047) == 0 {
+            self.timer.check();
+        }
+
+        if self.timer.is_stopped() {
             return Ok(0);
         }
 

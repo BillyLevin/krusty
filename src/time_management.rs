@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SearchTimerStatus {
     Stopped,
     Running,
@@ -14,6 +15,7 @@ pub enum SearchDuration {
 pub struct SearchTimer {
     pub start_time: Option<Instant>,
     pub allowed_duration: SearchDuration,
+    pub status: SearchTimerStatus,
 }
 
 impl Default for SearchTimer {
@@ -21,6 +23,7 @@ impl Default for SearchTimer {
         Self {
             start_time: None,
             allowed_duration: SearchDuration::Infinite,
+            status: SearchTimerStatus::Stopped,
         }
     }
 }
@@ -46,14 +49,23 @@ impl SearchTimer {
     }
 
     pub fn start(&mut self) {
+        self.status = SearchTimerStatus::Running;
         self.start_time = Some(Instant::now());
     }
 
-    pub fn is_time_up(&mut self) -> bool {
-        match self.allowed_duration {
+    pub fn check(&mut self) {
+        let is_time_up = match self.allowed_duration {
             SearchDuration::Finite(duration) => self.elapsed_ms() >= duration,
             SearchDuration::Infinite => false,
+        };
+
+        if is_time_up {
+            self.status = SearchTimerStatus::Stopped;
         }
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.status == SearchTimerStatus::Stopped
     }
 
     fn elapsed_ms(&self) -> u128 {
