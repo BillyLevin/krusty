@@ -41,6 +41,7 @@ impl SearchTimer {
             None => SearchDuration::Infinite,
         };
 
+        self.start_time = None;
         self.allowed_duration = duration;
     }
 

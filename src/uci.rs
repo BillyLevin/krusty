@@ -129,7 +129,7 @@ impl<'a> Uci<'a> {
         let mut args = args.split_whitespace();
 
         let mut time_remaining = None;
-        let increment = 0;
+        let mut increment = 0;
         let mut max_depth = SearchDepth::Infinite;
 
         while let Some(arg) = args.next() {
@@ -163,6 +163,28 @@ impl<'a> Uci<'a> {
                                 return;
                             }
                         };
+                    }
+                }
+                "winc" => {
+                    if self.search.board.side_to_move() == Side::White {
+                        increment = match args.next() {
+                            Some(time) => time.parse().unwrap_or(0),
+                            None => {
+                                println!("missing winc value");
+                                return;
+                            }
+                        }
+                    }
+                }
+                "binc" => {
+                    if self.search.board.side_to_move() == Side::Black {
+                        increment = match args.next() {
+                            Some(time) => time.parse().unwrap_or(0),
+                            None => {
+                                println!("missing binc value");
+                                return;
+                            }
+                        }
                     }
                 }
                 _ => (),
