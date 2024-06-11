@@ -131,6 +131,7 @@ impl<'a> Uci<'a> {
         let mut time_remaining = None;
         let mut increment = 0;
         let mut max_depth = SearchDepth::Infinite;
+        let mut moves_to_go = None;
 
         while let Some(arg) = args.next() {
             match arg {
@@ -187,6 +188,15 @@ impl<'a> Uci<'a> {
                         }
                     }
                 }
+                "movestogo" => {
+                    moves_to_go = match args.next() {
+                        Some(moves) => moves.parse().ok(),
+                        None => {
+                            println!("missing movestogo values");
+                            return;
+                        }
+                    }
+                }
                 _ => (),
             }
         }
@@ -195,7 +205,7 @@ impl<'a> Uci<'a> {
 
         self.search
             .timer
-            .initialize(time_remaining, increment, None);
+            .initialize(time_remaining, increment, moves_to_go);
 
         self.search.timer.start();
 
