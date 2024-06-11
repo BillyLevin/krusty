@@ -189,6 +189,8 @@ impl Cli {
     }
 
     fn handle_uci_command(&mut self) {
+        self.search.reset();
+
         let mut uci = Uci::new(&mut self.search);
         uci.start_loop();
     }

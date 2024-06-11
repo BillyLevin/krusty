@@ -24,27 +24,29 @@ impl<'a> Uci<'a> {
 
         loop {
             io::stdin().lock().read_line(&mut input_buffer).unwrap();
-            self.handle_input(&input_buffer);
+
+            let input = input_buffer.trim();
+            let (command, args) = match input.split_once(' ') {
+                Some((command, args)) => (command, args),
+                None => (input, ""),
+            };
+
+            let args = args.trim();
+
+            match command {
+                "uci" => Self::handle_uci_command(),
+                "isready" => println!("readyok"),
+                "position" => self.handle_position_command(args),
+                "go" => self.handle_go_command(args),
+                "quit" => {
+                    self.search.reset();
+                    break;
+                }
+                _ => (),
+            };
+
             input_buffer.clear();
         }
-    }
-
-    fn handle_input(&mut self, input: &str) {
-        let input = input.trim();
-        let (command, args) = match input.split_once(' ') {
-            Some((command, args)) => (command, args),
-            None => (input, ""),
-        };
-
-        let args = args.trim();
-
-        match command {
-            "uci" => Self::handle_uci_command(),
-            "isready" => println!("readyok"),
-            "position" => self.handle_position_command(args),
-            "go" => self.handle_go_command(args),
-            _ => (),
-        };
     }
 
     fn handle_uci_command() {

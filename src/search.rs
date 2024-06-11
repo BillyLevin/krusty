@@ -67,6 +67,10 @@ impl Default for Search {
 }
 
 impl Search {
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+
     pub fn search_position(&mut self) -> anyhow::Result<Move> {
         let max_depth = self.max_depth;
 
