@@ -68,33 +68,27 @@ impl Default for Search {
 
 impl Search {
     pub fn search_position(&mut self) -> anyhow::Result<Move> {
-        let depth = self.max_depth;
+        let max_depth = self.max_depth;
 
         let mut best_move = Move::NULL_MOVE;
 
         let is_maximizing = self.board.side_to_move() == Side::White;
 
-        if is_maximizing {
-            let mut best_score = i32::MIN;
-            let score = self.minimax(depth, &mut best_move)?;
-            if score > best_score {
-                best_score = score;
+        for depth in 1..=max_depth {
+            let mut current_best_move = Move::NULL_MOVE;
+
+            let score = self.minimax(depth, &mut current_best_move)?;
+
+            if self.timer.is_stopped() {
+                break;
             }
+
+            best_move = current_best_move;
+
             println!(
                 "info depth {} score {}",
                 depth,
-                Self::get_score_string(best_score, true)
-            );
-        } else {
-            let mut best_score = i32::MAX;
-            let score = self.minimax(depth, &mut best_move)?;
-            if score < best_score {
-                best_score = score;
-            }
-            println!(
-                "info depth {} score {}",
-                depth,
-                Self::get_score_string(best_score, false)
+                Self::get_score_string(score, is_maximizing)
             );
         }
 
@@ -238,7 +232,7 @@ impl Search {
             };
             format!("mate {}", moves_to_mate)
         } else {
-            format!("cp {}", score)
+            format!("cp {}", if is_maximizing { score } else { -score })
         }
     }
 }
