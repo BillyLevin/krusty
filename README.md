@@ -18,7 +18,7 @@ chess engine written in rust
 - [ ] time management
 - [x] iterative deepening
 - [x] integrate transposition table with search
-- [ ] alpha-beta pruning
+- [x] alpha-beta pruning
 - [ ] move ordering
 - [ ] piece-square tables
 - [ ] quiescence search

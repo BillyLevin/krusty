@@ -81,7 +81,7 @@ impl Search {
         for depth in 1..=max_depth {
             let mut current_best_move = Move::NULL_MOVE;
 
-            let score = self.minimax(depth, &mut current_best_move)?;
+            let score = self.minimax(depth, i32::MIN, i32::MAX, &mut current_best_move)?;
 
             if self.timer.is_stopped() {
                 break;
@@ -99,7 +99,13 @@ impl Search {
         Ok(best_move)
     }
 
-    fn minimax(&mut self, depth: u8, best_move: &mut Move) -> anyhow::Result<i32> {
+    fn minimax(
+        &mut self,
+        depth: u8,
+        alpha: i32,
+        beta: i32,
+        best_move: &mut Move,
+    ) -> anyhow::Result<i32> {
         if depth == 0 {
             return Ok(evaluate(&self.board));
         }
@@ -138,10 +144,16 @@ impl Search {
                 self.search_info.ply += 1;
                 legal_move_count += 1;
 
-                let score = self.minimax(depth - 1, best_move)?;
+                let score = self.minimax(depth - 1, alpha, beta, best_move)?;
 
                 self.board.unmake_move(mv)?;
                 self.search_info.ply -= 1;
+
+                let alpha = alpha.max(score);
+
+                if alpha >= beta {
+                    break;
+                }
 
                 if score > best_score {
                     best_score = score;
@@ -182,10 +194,16 @@ impl Search {
                 self.search_info.ply += 1;
                 legal_move_count += 1;
 
-                let score = self.minimax(depth - 1, best_move)?;
+                let score = self.minimax(depth - 1, alpha, beta, best_move)?;
 
                 self.board.unmake_move(mv)?;
                 self.search_info.ply -= 1;
+
+                let beta = beta.min(score);
+
+                if alpha >= beta {
+                    break;
+                }
 
                 if score < best_score {
                     best_score = score;
