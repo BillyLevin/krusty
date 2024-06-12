@@ -37,7 +37,6 @@ impl From<SearchDepth> for u8 {
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
-    pub depth: u8,
     pub ply: u8,
     pub nodes_searched: u64,
 }
@@ -90,9 +89,10 @@ impl Search {
             best_move = current_best_move;
 
             println!(
-                "info depth {} score {}",
+                "info depth {} score {} nodes {}",
                 depth,
-                Self::get_score_string(score, is_maximizing)
+                Self::get_score_string(score, is_maximizing),
+                self.search_info.nodes_searched
             );
         }
 
