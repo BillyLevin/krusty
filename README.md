@@ -12,7 +12,7 @@ chess engine written in rust
 - [x] add debugging commands (load FEN, perft on specific FEN, print board)
 - [x] add command to make moves
 - [ ] consistent error handling (and panic where it's a bug in program implementation)
-- [ ] implement UCI protocol (at least the important parts)
+- [x] implement UCI protocol (at least the important parts)
 - [x] basic search
 - [x] basic material evaluation
 - [ ] time management

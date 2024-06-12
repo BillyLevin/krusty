@@ -4,6 +4,7 @@ use std::time::Instant;
 pub enum SearchTimerStatus {
     Stopped,
     Running,
+    NotStarted,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -23,7 +24,7 @@ impl Default for SearchTimer {
         Self {
             start_time: None,
             allowed_duration: SearchDuration::Infinite,
-            status: SearchTimerStatus::Stopped,
+            status: SearchTimerStatus::NotStarted,
         }
     }
 }
