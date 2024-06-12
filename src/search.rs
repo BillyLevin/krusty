@@ -131,6 +131,9 @@ impl Search {
 
         let is_maximizing = self.board.side_to_move() == Side::White;
 
+        let mut alpha = alpha;
+        let mut beta = beta;
+
         if is_maximizing {
             let mut best_score = i32::MIN;
             let mut legal_move_count = 0;
@@ -149,11 +152,7 @@ impl Search {
                 self.board.unmake_move(mv)?;
                 self.search_info.ply -= 1;
 
-                let alpha = alpha.max(score);
-
-                if alpha >= beta {
-                    break;
-                }
+                alpha = alpha.max(score);
 
                 if score > best_score {
                     best_score = score;
@@ -161,6 +160,10 @@ impl Search {
                     if self.search_info.ply == 0 {
                         *best_move = mv;
                     }
+                }
+
+                if alpha >= beta {
+                    break;
                 }
             }
 
@@ -199,11 +202,7 @@ impl Search {
                 self.board.unmake_move(mv)?;
                 self.search_info.ply -= 1;
 
-                let beta = beta.min(score);
-
-                if alpha >= beta {
-                    break;
-                }
+                beta = beta.min(score);
 
                 if score < best_score {
                     best_score = score;
@@ -211,6 +210,10 @@ impl Search {
                     if self.search_info.ply == 0 {
                         *best_move = mv;
                     }
+                }
+
+                if alpha >= beta {
+                    break;
                 }
             }
 
