@@ -1,5 +1,5 @@
 use crate::{
-    board::{Board, Side, START_POSITION_FEN},
+    board::{Board, START_POSITION_FEN},
     evaluate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
@@ -34,6 +34,8 @@ impl From<SearchDepth> for u8 {
         }
     }
 }
+
+const INFINITY: i32 = 100_000;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
@@ -75,12 +77,10 @@ impl Search {
 
         let mut best_move = Move::NULL_MOVE;
 
-        let is_maximizing = self.board.side_to_move() == Side::White;
-
         for depth in 1..=max_depth {
             let mut current_best_move = Move::NULL_MOVE;
 
-            let score = self.minimax(depth, i32::MIN, i32::MAX, &mut current_best_move)?;
+            let score = self.negamax(depth, -INFINITY, INFINITY, &mut current_best_move)?;
 
             if self.timer.is_stopped() {
                 break;
@@ -91,7 +91,7 @@ impl Search {
             println!(
                 "info depth {} score {} nodes {}",
                 depth,
-                Self::get_score_string(score, is_maximizing),
+                Self::get_score_string(score,),
                 self.search_info.nodes_searched
             );
         }
@@ -99,7 +99,7 @@ impl Search {
         Ok(best_move)
     }
 
-    fn minimax(
+    fn negamax(
         &mut self,
         depth: u8,
         alpha: i32,
@@ -110,10 +110,10 @@ impl Search {
             return Ok(evaluate(&self.board));
         }
 
-        let table_entry = self.transposition_table.probe(self.board.hash());
-        if let Some(score) = table_entry.get(self.board.hash(), depth, self.search_info.ply) {
-            return Ok(score);
-        }
+        // let table_entry = self.transposition_table.probe(self.board.hash());
+        // if let Some(score) = table_entry.get(self.board.hash(), depth, self.search_info.ply) {
+        //     return Ok(score);
+        // }
 
         self.search_info.nodes_searched += 1;
 
@@ -129,135 +129,68 @@ impl Search {
         let mut move_list = MoveList::default();
         self.board.generate_all_moves(&mut move_list)?;
 
-        let is_maximizing = self.board.side_to_move() == Side::White;
-
+        let mut best_score = -INFINITY;
+        let mut legal_move_count = 0;
         let mut alpha = alpha;
-        let mut beta = beta;
 
-        if is_maximizing {
-            let mut best_score = i32::MIN;
-            let mut legal_move_count = 0;
-
-            for mv in move_list {
-                if !self.board.make_move(mv)? {
-                    self.board.unmake_move(mv)?;
-                    continue;
-                }
-
-                self.search_info.ply += 1;
-                legal_move_count += 1;
-
-                let score = self.minimax(depth - 1, alpha, beta, best_move)?;
-
+        for mv in move_list {
+            if !self.board.make_move(mv)? {
                 self.board.unmake_move(mv)?;
-                self.search_info.ply -= 1;
+                continue;
+            }
 
-                alpha = alpha.max(score);
+            self.search_info.ply += 1;
+            legal_move_count += 1;
 
-                if score > best_score {
-                    best_score = score;
+            let score = -self.negamax(depth - 1, -beta, -alpha, best_move)?;
 
-                    if self.search_info.ply == 0 {
-                        *best_move = mv;
-                    }
-                }
+            self.board.unmake_move(mv)?;
+            self.search_info.ply -= 1;
 
-                if alpha >= beta {
-                    break;
+            alpha = alpha.max(score);
+
+            if score > best_score {
+                best_score = score;
+
+                if self.search_info.ply == 0 {
+                    *best_move = mv;
                 }
             }
 
-            // no legal moves means it's either checkmate or stalemate
-            if legal_move_count == 0 {
-                if self.board.is_in_check(self.board.side_to_move()) {
-                    return Ok(i32::MIN + self.search_info.ply as i32);
-                } else {
-                    return Ok(0);
-                }
+            if best_score >= beta {
+                return Ok(best_score);
             }
-
-            self.transposition_table.store(SearchTableEntry::new(
-                self.board.hash(),
-                depth,
-                best_score,
-                self.search_info.ply,
-            ));
-
-            Ok(best_score)
-        } else {
-            let mut best_score = i32::MAX;
-            let mut legal_move_count = 0;
-
-            for mv in move_list {
-                if !self.board.make_move(mv)? {
-                    self.board.unmake_move(mv)?;
-                    continue;
-                }
-
-                self.search_info.ply += 1;
-                legal_move_count += 1;
-
-                let score = self.minimax(depth - 1, alpha, beta, best_move)?;
-
-                self.board.unmake_move(mv)?;
-                self.search_info.ply -= 1;
-
-                beta = beta.min(score);
-
-                if score < best_score {
-                    best_score = score;
-
-                    if self.search_info.ply == 0 {
-                        *best_move = mv;
-                    }
-                }
-
-                if alpha >= beta {
-                    break;
-                }
-            }
-
-            // no legal moves means it's either checkmate or stalemate
-            if legal_move_count == 0 {
-                if self.board.is_in_check(self.board.side_to_move()) {
-                    return Ok(i32::MAX - self.search_info.ply as i32);
-                } else {
-                    return Ok(0);
-                }
-            }
-
-            self.transposition_table.store(SearchTableEntry::new(
-                self.board.hash(),
-                depth,
-                best_score,
-                self.search_info.ply,
-            ));
-
-            Ok(best_score)
         }
+
+        // no legal moves means it's either checkmate or stalemate
+        if legal_move_count == 0 {
+            if self.board.is_in_check(self.board.side_to_move()) {
+                return Ok(-INFINITY + self.search_info.ply as i32);
+            } else {
+                return Ok(0);
+            }
+        }
+
+        // self.transposition_table.store(SearchTableEntry::new(
+        //     self.board.hash(),
+        //     depth,
+        //     best_score,
+        //     self.search_info.ply,
+        // ));
+
+        Ok(best_score)
     }
 
-    pub fn get_score_string(score: i32, is_maximizing: bool) -> String {
-        if score > CHECKMATE_THRESHOLD {
-            let ply_to_mate = i32::MAX.abs_diff(score) as i32;
+    pub fn get_score_string(score: i32) -> String {
+        if score.abs() > CHECKMATE_THRESHOLD {
+            let ply_to_mate = INFINITY.abs_diff(score.abs()) as i32;
             let moves_to_mate = ply_to_mate / 2 + ply_to_mate % 2;
-            let moves_to_mate = if is_maximizing {
-                moves_to_mate
-            } else {
-                -moves_to_mate
-            };
-            format!("mate {}", moves_to_mate)
-        } else if score < -CHECKMATE_THRESHOLD {
-            let ply_to_mate = i32::MIN.abs_diff(score) as i32;
-            let moves_to_mate = ply_to_mate / 2 + ply_to_mate % 2;
-            let moves_to_mate = if is_maximizing {
-                -moves_to_mate
-            } else {
-                moves_to_mate
-            };
-            format!("mate {}", moves_to_mate)
+
+            // prints from engine's perspective, so if e.g. engine is being mated in 2
+            // moves, we print `mate -2`
+            format!("mate {}", moves_to_mate * score.signum())
         } else {
-            format!("cp {}", if is_maximizing { score } else { -score })
+            format!("cp {}", score)
         }
     }
 }

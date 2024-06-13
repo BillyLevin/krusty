@@ -25,3 +25,4 @@ chess engine written in rust
 - [ ] piece mobility
 - [ ] opening book
 - [ ] principal variation
+- [ ] make transposition table work with alpha-beta
