@@ -146,16 +146,18 @@ impl Search {
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
 
+            if score > alpha {
+                alpha = score;
+
+                if self.search_info.ply == 0 {
+                    *best_move = mv;
+                }
+            }
+
             // move is very good for our opponent, disregard it
             if score >= beta {
-                return Ok(beta);
+                break;
             }
-
-            if score > alpha && self.search_info.ply == 0 {
-                *best_move = mv;
-            }
-
-            alpha = alpha.max(score);
         }
 
         // no legal moves means it's either checkmate or stalemate
