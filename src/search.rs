@@ -151,7 +151,7 @@ impl Search {
                 return Ok(beta);
             }
 
-            if score >= alpha && self.search_info.ply == 0 {
+            if score > alpha && self.search_info.ply == 0 {
                 *best_move = mv;
             }
 
