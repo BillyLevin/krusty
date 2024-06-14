@@ -209,6 +209,8 @@ impl<'a> Uci<'a> {
             .timer
             .initialize(time_remaining, increment, moves_to_go);
 
+        self.search.search_info.nodes_searched = 0;
+
         self.search.timer.start();
 
         let best_move = match self.search.search_position() {

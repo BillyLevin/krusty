@@ -74,6 +74,9 @@ impl Search {
     }
 
     pub fn search_position(&mut self) -> anyhow::Result<Move> {
+        self.search_info.nodes_searched = 0;
+        self.search_info.ply = 0;
+
         let max_depth = self.max_depth;
 
         let mut best_move = Move::NULL_MOVE;
