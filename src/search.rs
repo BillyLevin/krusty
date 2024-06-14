@@ -4,6 +4,7 @@ use crate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
     move_generator::{Move, MoveList},
+    square::PieceKind,
     time_management::SearchTimer,
     transposition_table::{SearchTableEntry, TranspositionTable},
 };
@@ -132,7 +133,11 @@ impl Search {
         let mut legal_move_count = 0;
         let mut alpha = alpha;
 
-        for mv in move_list {
+        self.score_moves(&mut move_list);
+
+        for i in 0..move_list.length() {
+            let mv = move_list.pick_ordered_move(i);
+
             if !self.board.make_move(mv)? {
                 self.board.unmake_move(mv)?;
                 continue;
@@ -179,7 +184,25 @@ impl Search {
         Ok(alpha)
     }
 
-    pub fn get_score_string(score: i32) -> String {
+    fn score_moves(&self, move_list: &mut MoveList) {
+        for i in 0..move_list.length() {
+            let mv = move_list.get_mut(i);
+
+            let mut score = 0;
+
+            let victim = self.board.get_piece(mv.to_square());
+            if victim.kind != PieceKind::NoPiece {
+                let attacker = self.board.get_piece(mv.from_square());
+
+                score = (64 * victim.material_value()) - attacker.material_value();
+            }
+
+            assert!(score >= 0, "{score} is incorrect");
+            mv.set_score(score as u32);
+        }
+    }
+
+    fn get_score_string(score: i32) -> String {
         if score.abs() > CHECKMATE_THRESHOLD {
             let ply_to_mate = INFINITY.abs_diff(score.abs()) as i32;
             let moves_to_mate = ply_to_mate / 2 + ply_to_mate % 2;

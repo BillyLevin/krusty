@@ -130,24 +130,48 @@ impl Display for Move {
 #[derive(Clone)]
 pub struct MoveList {
     moves: Vec<Move>,
-    count: usize,
 }
 
 impl MoveList {
     pub fn new() -> Self {
-        Self {
-            moves: Vec::new(),
-            count: 0,
-        }
+        Self { moves: Vec::new() }
     }
 
     pub fn push(&mut self, mv: Move) {
         self.moves.push(mv);
-        self.count += 1;
     }
 
     pub fn get(&self, index: usize) -> Move {
         self.moves[index]
+    }
+
+    pub fn length(&self) -> usize {
+        self.moves.len()
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> &mut Move {
+        &mut self.moves[index]
+    }
+
+    pub fn pick_ordered_move(&mut self, current_index: usize) -> Move {
+        let mut best_index = current_index;
+        let mut best_score = self.get(current_index).score();
+
+        for index in (current_index + 1)..self.length() {
+            if self.get(index).score() > best_score {
+                best_index = index;
+                best_score = self.get(index).score();
+            }
+        }
+
+        self.swap_moves(current_index, best_index);
+        self.get(current_index)
+    }
+
+    fn swap_moves(&mut self, index_a: usize, index_b: usize) {
+        let tmp = self.get(index_a);
+        self.moves[index_a] = self.get(index_b);
+        self.moves[index_b] = tmp;
     }
 }
 
@@ -930,10 +954,10 @@ impl Debug for MoveList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f)?;
 
-        for i in 0..self.count {
+        for i in 0..self.length() {
             writeln!(f, "{:?}", self.moves[i])?;
         }
 
-        writeln!(f, "Move list size: {}", self.count)
+        writeln!(f, "Move list size: {}", self.length())
     }
 }

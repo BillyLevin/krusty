@@ -19,7 +19,7 @@ chess engine written in rust
 - [x] iterative deepening
 - [x] integrate transposition table with search
 - [x] alpha-beta pruning
-- [ ] move ordering
+- [x] move ordering
 - [ ] piece-square tables
 - [ ] quiescence search
 - [ ] piece mobility
