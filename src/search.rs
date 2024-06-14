@@ -129,7 +129,6 @@ impl Search {
         let mut move_list = MoveList::default();
         self.board.generate_all_moves(&mut move_list)?;
 
-        let mut best_score = -INFINITY;
         let mut legal_move_count = 0;
         let mut alpha = alpha;
 
@@ -147,19 +146,16 @@ impl Search {
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
 
+            // move is very good for our opponent, disregard it
+            if score >= beta {
+                return Ok(beta);
+            }
+
+            if score >= alpha && self.search_info.ply == 0 {
+                *best_move = mv;
+            }
+
             alpha = alpha.max(score);
-
-            if score > best_score {
-                best_score = score;
-
-                if self.search_info.ply == 0 {
-                    *best_move = mv;
-                }
-            }
-
-            if best_score >= beta {
-                return Ok(best_score);
-            }
         }
 
         // no legal moves means it's either checkmate or stalemate
@@ -178,7 +174,7 @@ impl Search {
         //     self.search_info.ply,
         // ));
 
-        Ok(best_score)
+        Ok(alpha)
     }
 
     pub fn get_score_string(score: i32) -> String {

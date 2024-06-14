@@ -26,3 +26,4 @@ chess engine written in rust
 - [ ] opening book
 - [ ] principal variation
 - [ ] make transposition table work with alpha-beta
+- [ ] research and experiment with fail-soft alpha-beta
