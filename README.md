@@ -15,7 +15,7 @@ chess engine written in rust
 - [x] implement UCI protocol (at least the important parts)
 - [x] basic search
 - [x] basic material evaluation
-- [ ] time management
+- [x] time management
 - [x] iterative deepening
 - [x] integrate transposition table with search
 - [x] alpha-beta pruning
@@ -27,3 +27,5 @@ chess engine written in rust
 - [ ] principal variation
 - [ ] make transposition table work with alpha-beta
 - [ ] research and experiment with fail-soft alpha-beta
+- [ ] endgame piece-square tables
+- [ ] try out tapered evaluation
