@@ -197,7 +197,7 @@ impl Search {
             if victim.kind != PieceKind::NoPiece {
                 let attacker = self.board.get_piece(mv.from_square());
 
-                score = (64 * victim.material_value()) - attacker.material_value();
+                score = (10 * victim.material_value()) - attacker.material_value();
             }
 
             assert!(score >= 0, "{score} is incorrect");
