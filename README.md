@@ -31,5 +31,5 @@ chess engine written in rust
 - [ ] try out tapered evaluation
 - [ ] tuning
 - [x] check extension
-- [ ] draw detection (repetitions and 50-move rule)
+- [x] draw detection (repetitions and 50-move rule)
 - [ ] null move pruning

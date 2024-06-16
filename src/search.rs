@@ -135,6 +135,10 @@ impl Search {
             return Ok(0);
         }
 
+        if self.board.is_draw() {
+            return Ok(0);
+        }
+
         let mut move_list = MoveList::default();
         self.board.generate_all_moves(&mut move_list)?;
 
@@ -201,6 +205,10 @@ impl Search {
         }
 
         if self.timer.is_stopped() {
+            return Ok(0);
+        }
+
+        if self.board.is_draw() {
             return Ok(0);
         }
 

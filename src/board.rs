@@ -492,6 +492,21 @@ impl Board {
     pub fn set_hash(&mut self, hash: u64) {
         self.hash = hash
     }
+
+    pub fn is_draw(&self) -> bool {
+        self.halfmove_clock >= 100 || self.is_repeated_position()
+    }
+
+    pub fn is_repeated_position(&self) -> bool {
+        // search backwards as it's more likely that a repeated position occurred recently
+        for i in (self.history.len() - 1)..=0 {
+            if self.history[i].hash == self.hash {
+                return true;
+            }
+        }
+
+        false
+    }
 }
 
 fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
