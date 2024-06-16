@@ -926,6 +926,275 @@ impl MoveGenerator {
 
         false
     }
+
+    pub fn generate_all_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> Result<(), anyhow::Error> {
+        self.generate_pawn_captures(board, move_list)?;
+        self.generate_king_captures(board, move_list)?;
+        self.generate_knight_captures(board, move_list)?;
+        self.generate_bishop_captures(board, move_list)?;
+        self.generate_rook_captures(board, move_list)?;
+        self.generate_queen_captures(board, move_list)?;
+
+        Ok(())
+    }
+
+    fn generate_pawn_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut pawns =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Pawn))?;
+
+        while pawns != EMPTY_BB {
+            let from_square = pawns.pop_bit();
+
+            let en_passant_bb = match board.en_passant_square() {
+                Square::None => EMPTY_BB,
+                square => square.bitboard(),
+            };
+
+            let enemy_side = match board.side_to_move() {
+                Side::White => Side::Black,
+                Side::Black => Side::White,
+            };
+
+            let enemy = board.occupancy(enemy_side) | en_passant_bb;
+            let pawn_attack_mask = pawn_attacks(board.side_to_move())[from_square.index()];
+
+            let mut attacks = pawn_attack_mask & enemy;
+
+            while attacks != EMPTY_BB {
+                let attacked_square = attacks.pop_bit();
+
+                if Self::is_promotion(board.side_to_move(), attacked_square)? {
+                    Self::push_all_promotions(move_list, from_square, attacked_square);
+                } else {
+                    let flag = if attacked_square == board.en_passant_square() {
+                        MoveFlag::EnPassant
+                    } else {
+                        MoveFlag::None
+                    };
+
+                    move_list.push(Move::new(
+                        from_square,
+                        attacked_square,
+                        MoveKind::Capture,
+                        flag,
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn generate_knight_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut knights =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Knight))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while knights != EMPTY_BB {
+            let from_square = knights.pop_bit();
+
+            let possible_attacks = KNIGHT_ATTACKS[from_square.index()];
+
+            let mut knight_moves = possible_attacks & !current_side_occupancy;
+
+            while knight_moves != EMPTY_BB {
+                let to_square = knight_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                if is_capture {
+                    move_list.push(Move::new(
+                        from_square,
+                        to_square,
+                        MoveKind::Capture,
+                        MoveFlag::None,
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn generate_king_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut king =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::King))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        let from_square = king.pop_bit();
+
+        let possible_attacks = KING_ATTACKS[from_square.index()];
+
+        let mut king_moves = possible_attacks & !current_side_occupancy;
+
+        while king_moves != EMPTY_BB {
+            let to_square = king_moves.pop_bit();
+
+            let is_capture = (to_square.bitboard() & enemy_occupancy) != EMPTY_BB;
+
+            if is_capture {
+                move_list.push(Move::new(
+                    from_square,
+                    to_square,
+                    MoveKind::Capture,
+                    MoveFlag::None,
+                ));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn generate_rook_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut rooks =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Rook))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while rooks != EMPTY_BB {
+            let from_square = rooks.pop_bit();
+
+            let magic = ROOK_MAGICS[from_square.index()];
+
+            let occupancies = current_side_occupancy | enemy_occupancy;
+
+            let possible_attacks = self.rook_attacks[magic.get_magic_index(occupancies)];
+
+            let mut rook_moves = possible_attacks & !current_side_occupancy;
+
+            while rook_moves != EMPTY_BB {
+                let to_square = rook_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                if is_capture {
+                    move_list.push(Move::new(
+                        from_square,
+                        to_square,
+                        MoveKind::Capture,
+                        MoveFlag::None,
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn generate_bishop_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut bishops =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Bishop))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while bishops != EMPTY_BB {
+            let from_square = bishops.pop_bit();
+
+            let magic = BISHOP_MAGICS[from_square.index()];
+
+            let occupancies = current_side_occupancy | enemy_occupancy;
+
+            let possible_attacks = self.bishop_attacks[magic.get_magic_index(occupancies)];
+
+            let mut bishop_moves = possible_attacks & !current_side_occupancy;
+
+            while bishop_moves != EMPTY_BB {
+                let to_square = bishop_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                if is_capture {
+                    move_list.push(Move::new(
+                        from_square,
+                        to_square,
+                        MoveKind::Capture,
+                        MoveFlag::None,
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn generate_queen_captures(
+        &self,
+        board: &Board,
+        move_list: &mut MoveList,
+    ) -> anyhow::Result<()> {
+        let mut queens =
+            board.get_piece_bb(Piece::new(board.side_to_move().into(), PieceKind::Queen))?;
+
+        let (current_side_occupancy, enemy_occupancy) = match board.side_to_move() {
+            Side::White => (board.occupancy(Side::White), board.occupancy(Side::Black)),
+            Side::Black => (board.occupancy(Side::Black), board.occupancy(Side::White)),
+        };
+
+        while queens != EMPTY_BB {
+            let from_square = queens.pop_bit();
+
+            let bishop_magic = BISHOP_MAGICS[from_square.index()];
+            let rook_magic = ROOK_MAGICS[from_square.index()];
+
+            let occupancies = current_side_occupancy | enemy_occupancy;
+
+            let possible_attacks = self.bishop_attacks[bishop_magic.get_magic_index(occupancies)]
+                | self.rook_attacks[rook_magic.get_magic_index(occupancies)];
+
+            let mut queen_moves = possible_attacks & !current_side_occupancy;
+
+            while queen_moves != EMPTY_BB {
+                let to_square = queen_moves.pop_bit();
+
+                let is_capture = to_square.bitboard() & enemy_occupancy != EMPTY_BB;
+
+                if is_capture {
+                    move_list.push(Move::new(
+                        from_square,
+                        to_square,
+                        MoveKind::Capture,
+                        MoveFlag::None,
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for MoveGenerator {

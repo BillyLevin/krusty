@@ -473,6 +473,10 @@ impl Board {
         self.move_generator.generate_all_moves(self, move_list)
     }
 
+    pub fn generate_all_captures(&self, move_list: &mut MoveList) -> anyhow::Result<()> {
+        self.move_generator.generate_all_captures(self, move_list)
+    }
+
     pub fn pieces(&self) -> &[Piece] {
         &self.pieces
     }

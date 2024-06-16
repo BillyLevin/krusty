@@ -116,7 +116,7 @@ impl Search {
         }
 
         if depth == 0 {
-            return Ok(evaluate(&self.board));
+            return self.quiescence_search(alpha, beta);
         }
 
         // let table_entry = self.transposition_table.probe(self.board.hash());
@@ -188,6 +188,56 @@ impl Search {
         //     best_score,
         //     self.search_info.ply,
         // ));
+
+        Ok(alpha)
+    }
+
+    pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> anyhow::Result<i32> {
+        self.search_info.nodes_searched += 1;
+
+        // check move time expiry every 2048 nodes
+        if (self.search_info.nodes_searched & 2047) == 0 {
+            self.timer.check();
+        }
+
+        if self.timer.is_stopped() {
+            return Ok(0);
+        }
+
+        let stand_pat = evaluate(&self.board);
+
+        if stand_pat >= beta {
+            return Ok(beta);
+        }
+
+        alpha = alpha.max(stand_pat);
+
+        let mut move_list = MoveList::default();
+        self.board.generate_all_captures(&mut move_list)?;
+
+        self.score_moves(&mut move_list);
+
+        for i in 0..move_list.length() {
+            let mv = move_list.pick_ordered_move(i);
+
+            if !self.board.make_move(mv)? {
+                self.board.unmake_move(mv)?;
+                continue;
+            }
+
+            self.search_info.ply += 1;
+
+            let score = -self.quiescence_search(-beta, -alpha)?;
+
+            self.board.unmake_move(mv)?;
+            self.search_info.ply -= 1;
+
+            alpha = alpha.max(score);
+
+            if score >= beta {
+                break;
+            }
+        }
 
         Ok(alpha)
     }

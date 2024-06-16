@@ -21,7 +21,7 @@ chess engine written in rust
 - [x] alpha-beta pruning
 - [x] move ordering
 - [x] piece-square tables
-- [ ] quiescence search
+- [x] quiescence search
 - [ ] piece mobility
 - [ ] opening book
 - [ ] principal variation
@@ -32,3 +32,4 @@ chess engine written in rust
 - [ ] tuning
 - [x] check extension
 - [ ] draw detection (repetitions and 50-move rule)
+- [ ] null move pruning
