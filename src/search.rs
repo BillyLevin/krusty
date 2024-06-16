@@ -105,11 +105,16 @@ impl Search {
 
     fn negamax(
         &mut self,
-        depth: u8,
+        mut depth: u8,
         alpha: i32,
         beta: i32,
         best_move: &mut Move,
     ) -> anyhow::Result<i32> {
+        // search a bit further if in check
+        if self.board.is_in_check(self.board.side_to_move()) {
+            depth += 1;
+        }
+
         if depth == 0 {
             return Ok(evaluate(&self.board));
         }
