@@ -20,7 +20,7 @@ chess engine written in rust
 - [x] integrate transposition table with search
 - [x] alpha-beta pruning
 - [x] move ordering
-- [ ] piece-square tables
+- [x] piece-square tables
 - [ ] quiescence search
 - [ ] piece mobility
 - [ ] opening book
@@ -29,3 +29,5 @@ chess engine written in rust
 - [ ] research and experiment with fail-soft alpha-beta
 - [ ] endgame piece-square tables
 - [ ] try out tapered evaluation
+- [ ] tuning
+- [ ] check extension
