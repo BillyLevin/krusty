@@ -30,4 +30,5 @@ chess engine written in rust
 - [ ] endgame piece-square tables
 - [ ] try out tapered evaluation
 - [ ] tuning
-- [ ] check extension
+- [x] check extension
+- [ ] draw detection (repetitions and 50-move rule)
