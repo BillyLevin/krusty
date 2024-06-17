@@ -3,7 +3,7 @@ use crate::{
     evaluate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
-    move_generator::{Move, MoveFlag, MoveKind, MoveList},
+    move_generator::{Move, MoveList},
     square::PieceKind,
     time_management::SearchTimer,
     transposition_table::{SearchTableEntry, TranspositionTable},
