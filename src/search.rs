@@ -3,7 +3,7 @@ use crate::{
     evaluate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
-    move_generator::{Move, MoveList},
+    move_generator::{Move, MoveFlag, MoveKind, MoveList},
     square::PieceKind,
     time_management::SearchTimer,
     transposition_table::{SearchTableEntry, TranspositionTable},
@@ -37,6 +37,7 @@ impl From<SearchDepth> for u8 {
 }
 
 const INFINITY: i32 = 100_000;
+const CAPTURE_SCORE_OFFSET: i32 = 1000;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
@@ -260,10 +261,18 @@ impl Search {
             if victim.kind != PieceKind::NoPiece {
                 let attacker = self.board.get_piece(mv.from_square());
 
-                score = (10 * victim.material_value()) - attacker.material_value();
+                score = CAPTURE_SCORE_OFFSET + (10 * victim.material_value())
+                    - attacker.material_value();
             }
 
-            assert!(score >= 0, "{score} is incorrect");
+            assert!(score >= 0, "score must be above 0, got {}", score);
+            assert!(
+                score <= (1 << 15),
+                "score must be below {}, got {}",
+                1 << 15,
+                score
+            );
+
             mv.set_score(score as u32);
         }
     }
