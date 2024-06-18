@@ -6,7 +6,7 @@ use crate::{
     move_generator::{Move, MoveList},
     square::PieceKind,
     time_management::SearchTimer,
-    transposition_table::{SearchTableEntry, TranspositionTable},
+    transposition_table::{SearchEntryFlag, SearchTableEntry, TranspositionTable},
 };
 
 // if the score is higher than this, it's definitely checkmate
@@ -120,10 +120,14 @@ impl Search {
             return self.quiescence_search(alpha, beta);
         }
 
-        // let table_entry = self.transposition_table.probe(self.board.hash());
-        // if let Some(score) = table_entry.get(self.board.hash(), depth, self.search_info.ply) {
-        //     return Ok(score);
-        // }
+        let table_entry = self.transposition_table.probe(self.board.hash());
+        if let Some(score) =
+            table_entry.get(self.board.hash(), depth, self.search_info.ply, alpha, beta)
+        {
+            if self.search_info.ply != 0 {
+                return Ok(score);
+            }
+        }
 
         self.search_info.nodes_searched += 1;
 
@@ -144,7 +148,10 @@ impl Search {
         self.board.generate_all_moves(&mut move_list)?;
 
         let mut legal_move_count = 0;
+        let old_alpha = alpha;
         let mut alpha = alpha;
+
+        let mut best_score_from_node = -INFINITY;
 
         self.score_moves(&mut move_list);
 
@@ -164,17 +171,28 @@ impl Search {
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
 
+            if score > best_score_from_node {
+                best_score_from_node = score;
+            }
+
+            // move is very good for our opponent, disregard it
+            if score >= beta {
+                self.transposition_table.store(SearchTableEntry::new(
+                    self.board.hash(),
+                    depth,
+                    beta,
+                    self.search_info.ply,
+                    SearchEntryFlag::Beta,
+                ));
+                return Ok(beta);
+            }
+
             if score > alpha {
                 alpha = score;
 
                 if self.search_info.ply == 0 {
                     *best_move = mv;
                 }
-            }
-
-            // move is very good for our opponent, disregard it
-            if score >= beta {
-                break;
             }
         }
 
@@ -187,12 +205,17 @@ impl Search {
             }
         }
 
-        // self.transposition_table.store(SearchTableEntry::new(
-        //     self.board.hash(),
-        //     depth,
-        //     best_score,
-        //     self.search_info.ply,
-        // ));
+        self.transposition_table.store(SearchTableEntry::new(
+            self.board.hash(),
+            depth,
+            alpha,
+            self.search_info.ply,
+            if alpha == old_alpha {
+                SearchEntryFlag::Alpha
+            } else {
+                SearchEntryFlag::Exact
+            },
+        ));
 
         Ok(alpha)
     }
