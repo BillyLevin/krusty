@@ -38,6 +38,7 @@ impl From<SearchDepth> for u8 {
 
 const INFINITY: i32 = 100_000;
 const CAPTURE_SCORE_OFFSET: i32 = 1000;
+const TT_SCORE_OFFSET: i32 = CAPTURE_SCORE_OFFSET + 10000;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
@@ -60,7 +61,7 @@ impl Default for Search {
         board.parse_fen(START_POSITION_FEN).unwrap();
 
         Self {
-            transposition_table: TranspositionTable::new(64),
+            transposition_table: TranspositionTable::new(256),
             board,
             search_info: SearchInfo::default(),
             timer: SearchTimer::default(),
@@ -121,9 +122,10 @@ impl Search {
         }
 
         let table_entry = self.transposition_table.probe(self.board.hash());
-        if let Some(score) =
-            table_entry.get(self.board.hash(), depth, self.search_info.ply, alpha, beta)
-        {
+        let (transposition_score, transposition_move) =
+            table_entry.get(self.board.hash(), depth, self.search_info.ply, alpha, beta);
+
+        if let Some(score) = transposition_score {
             if self.search_info.ply != 0 {
                 return Ok(score);
             }
@@ -152,8 +154,9 @@ impl Search {
         let mut alpha = alpha;
 
         let mut best_score_from_node = -INFINITY;
+        let mut best_move_from_node = Move::NULL_MOVE;
 
-        self.score_moves(&mut move_list);
+        self.score_moves(&mut move_list, transposition_move);
 
         for i in 0..move_list.length() {
             let mv = move_list.pick_ordered_move(i);
@@ -173,6 +176,7 @@ impl Search {
 
             if score > best_score_from_node {
                 best_score_from_node = score;
+                best_move_from_node = mv;
             }
 
             // move is very good for our opponent, disregard it
@@ -183,6 +187,7 @@ impl Search {
                     beta,
                     self.search_info.ply,
                     SearchEntryFlag::Beta,
+                    best_move_from_node,
                 ));
                 return Ok(beta);
             }
@@ -215,6 +220,7 @@ impl Search {
             } else {
                 SearchEntryFlag::Exact
             },
+            best_move_from_node,
         ));
 
         Ok(alpha)
@@ -247,7 +253,7 @@ impl Search {
         let mut move_list = MoveList::default();
         self.board.generate_all_captures(&mut move_list)?;
 
-        self.score_moves(&mut move_list);
+        self.score_moves(&mut move_list, Move::NULL_MOVE);
 
         for i in 0..move_list.length() {
             let mv = move_list.pick_ordered_move(i);
@@ -274,14 +280,17 @@ impl Search {
         Ok(alpha)
     }
 
-    fn score_moves(&self, move_list: &mut MoveList) {
+    fn score_moves(&self, move_list: &mut MoveList, transposition_move: Move) {
         for i in 0..move_list.length() {
             let mv = move_list.get_mut(i);
 
             let mut score = 0;
 
             let victim = self.board.get_piece(mv.to_square());
-            if victim.kind != PieceKind::NoPiece {
+
+            if *mv == transposition_move {
+                score = TT_SCORE_OFFSET;
+            } else if victim.kind != PieceKind::NoPiece {
                 let attacker = self.board.get_piece(mv.from_square());
 
                 score = CAPTURE_SCORE_OFFSET + (10 * victim.material_value())

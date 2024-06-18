@@ -1,4 +1,4 @@
-use crate::search::CHECKMATE_THRESHOLD;
+use crate::{move_generator::Move, search::CHECKMATE_THRESHOLD};
 
 pub trait TableEntry {
     fn hash(&self) -> u64;
@@ -25,6 +25,7 @@ pub struct SearchTableEntry {
     pub depth: u8,
     pub score: i32,
     pub flag: SearchEntryFlag,
+    pub best_move: Move,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -52,7 +53,14 @@ impl TableEntry for PerftTableEntry {
 }
 
 impl SearchTableEntry {
-    pub fn new(hash: u64, depth: u8, score: i32, ply: u8, flag: SearchEntryFlag) -> Self {
+    pub fn new(
+        hash: u64,
+        depth: u8,
+        score: i32,
+        ply: u8,
+        flag: SearchEntryFlag,
+        best_move: Move,
+    ) -> Self {
         let mut score = score;
 
         if score > CHECKMATE_THRESHOLD {
@@ -68,41 +76,47 @@ impl SearchTableEntry {
             depth,
             score,
             flag,
+            best_move,
         }
     }
 
-    pub fn get(&self, hash: u64, depth: u8, ply: u8, alpha: i32, beta: i32) -> Option<i32> {
+    pub fn get(&self, hash: u64, depth: u8, ply: u8, alpha: i32, beta: i32) -> (Option<i32>, Move) {
         let mut score = None;
+        let mut best_move = Move::NULL_MOVE;
 
-        if self.hash() == hash && self.depth >= depth {
-            let mut entry_score = self.score;
+        if self.hash() == hash {
+            best_move = self.best_move;
 
-            match self.flag {
-                SearchEntryFlag::Exact => {
-                    if entry_score > CHECKMATE_THRESHOLD {
-                        entry_score -= ply as i32;
-                    }
+            if self.depth == depth {
+                let mut entry_score = self.score;
 
-                    if entry_score < -CHECKMATE_THRESHOLD {
-                        entry_score += ply as i32;
-                    }
+                match self.flag {
+                    SearchEntryFlag::Exact => {
+                        if entry_score > CHECKMATE_THRESHOLD {
+                            entry_score -= ply as i32;
+                        }
 
-                    score = Some(entry_score);
-                }
-                SearchEntryFlag::Alpha => {
-                    if alpha >= entry_score {
-                        return Some(alpha);
+                        if entry_score < -CHECKMATE_THRESHOLD {
+                            entry_score += ply as i32;
+                        }
+
+                        score = Some(entry_score);
                     }
-                }
-                SearchEntryFlag::Beta => {
-                    if beta <= entry_score {
-                        return Some(beta);
+                    SearchEntryFlag::Alpha => {
+                        if alpha >= entry_score {
+                            score = Some(alpha);
+                        }
                     }
-                }
-            };
+                    SearchEntryFlag::Beta => {
+                        if beta <= entry_score {
+                            score = Some(beta);
+                        }
+                    }
+                };
+            }
         }
 
-        score
+        (score, best_move)
     }
 }
 
