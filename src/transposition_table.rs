@@ -24,6 +24,15 @@ pub struct SearchTableEntry {
     pub hash: u64,
     pub depth: u8,
     pub score: i32,
+    pub flag: SearchEntryFlag,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum SearchEntryFlag {
+    #[default]
+    Exact,
+    Alpha,
+    Beta,
 }
 
 impl PerftTableEntry {
@@ -43,7 +52,7 @@ impl TableEntry for PerftTableEntry {
 }
 
 impl SearchTableEntry {
-    pub fn new(hash: u64, depth: u8, score: i32, ply: u8) -> Self {
+    pub fn new(hash: u64, depth: u8, score: i32, ply: u8, flag: SearchEntryFlag) -> Self {
         let mut score = score;
 
         if score > CHECKMATE_THRESHOLD {
@@ -54,24 +63,43 @@ impl SearchTableEntry {
             score -= ply as i32;
         }
 
-        Self { hash, depth, score }
+        Self {
+            hash,
+            depth,
+            score,
+            flag,
+        }
     }
 
-    pub fn get(&self, hash: u64, depth: u8, ply: u8) -> Option<i32> {
+    pub fn get(&self, hash: u64, depth: u8, ply: u8, alpha: i32, beta: i32) -> Option<i32> {
         let mut score = None;
 
-        if self.hash() == hash && self.depth == depth {
+        if self.hash() == hash && self.depth >= depth {
             let mut entry_score = self.score;
 
-            if entry_score > CHECKMATE_THRESHOLD {
-                entry_score -= ply as i32;
-            }
+            match self.flag {
+                SearchEntryFlag::Exact => {
+                    if entry_score > CHECKMATE_THRESHOLD {
+                        entry_score -= ply as i32;
+                    }
 
-            if entry_score < -CHECKMATE_THRESHOLD {
-                entry_score += ply as i32;
-            }
+                    if entry_score < -CHECKMATE_THRESHOLD {
+                        entry_score += ply as i32;
+                    }
 
-            score = Some(entry_score);
+                    score = Some(entry_score);
+                }
+                SearchEntryFlag::Alpha => {
+                    if alpha >= entry_score {
+                        return Some(alpha);
+                    }
+                }
+                SearchEntryFlag::Beta => {
+                    if beta <= entry_score {
+                        return Some(beta);
+                    }
+                }
+            };
         }
 
         score
