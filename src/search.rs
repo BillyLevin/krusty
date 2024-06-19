@@ -61,7 +61,7 @@ impl Default for Search {
         board.parse_fen(START_POSITION_FEN).unwrap();
 
         Self {
-            transposition_table: TranspositionTable::new(256),
+            transposition_table: TranspositionTable::new(64),
             board,
             search_info: SearchInfo::default(),
             timer: SearchTimer::default(),

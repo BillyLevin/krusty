@@ -25,7 +25,7 @@ chess engine written in rust
 - [ ] piece mobility
 - [ ] opening book
 - [ ] principal variation
-- [ ] make transposition table work with alpha-beta
+- [x] make transposition table work with alpha-beta
 - [ ] research and experiment with fail-soft alpha-beta
 - [ ] endgame piece-square tables
 - [ ] try out tapered evaluation
