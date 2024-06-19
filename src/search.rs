@@ -82,23 +82,26 @@ impl Search {
         let max_depth = self.max_depth;
 
         let mut best_move = Move::NULL_MOVE;
+        let mut pv = Vec::new();
 
         for depth in 1..=max_depth {
-            let mut current_best_move = Move::NULL_MOVE;
-
-            let score = self.negamax(depth, -INFINITY, INFINITY, &mut current_best_move)?;
+            let score = self.negamax(depth, -INFINITY, INFINITY, &mut pv)?;
 
             if self.timer.is_stopped() {
                 break;
             }
 
-            best_move = current_best_move;
+            best_move = match pv.first() {
+                Some(mv) => *mv,
+                None => Move::NULL_MOVE,
+            };
 
             println!(
-                "info depth {} score {} nodes {}",
+                "info depth {} score {} nodes {} pv {}",
                 depth,
-                Self::get_score_string(score,),
-                self.search_info.nodes_searched
+                Self::get_score_string(score),
+                self.search_info.nodes_searched,
+                Self::get_pv_string(&pv),
             );
         }
 
@@ -110,7 +113,7 @@ impl Search {
         mut depth: u8,
         alpha: i32,
         beta: i32,
-        best_move: &mut Move,
+        pv: &mut Vec<Move>,
     ) -> anyhow::Result<i32> {
         // search a bit further if in check
         if self.board.is_in_check(self.board.side_to_move()) {
@@ -118,7 +121,7 @@ impl Search {
         }
 
         if depth == 0 {
-            return self.quiescence_search(alpha, beta);
+            return self.quiescence_search(alpha, beta, pv);
         }
 
         let table_entry = self.transposition_table.probe(self.board.hash());
@@ -166,10 +169,12 @@ impl Search {
                 continue;
             }
 
+            let mut current_pv = Vec::new();
+
             self.search_info.ply += 1;
             legal_move_count += 1;
 
-            let score = -self.negamax(depth - 1, -beta, -alpha, best_move)?;
+            let score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?;
 
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
@@ -195,9 +200,9 @@ impl Search {
             if score > alpha {
                 alpha = score;
 
-                if self.search_info.ply == 0 {
-                    *best_move = mv;
-                }
+                pv.clear();
+                pv.push(mv);
+                pv.append(&mut current_pv);
             }
         }
 
@@ -226,7 +231,12 @@ impl Search {
         Ok(alpha)
     }
 
-    pub fn quiescence_search(&mut self, mut alpha: i32, beta: i32) -> anyhow::Result<i32> {
+    fn quiescence_search(
+        &mut self,
+        mut alpha: i32,
+        beta: i32,
+        pv: &mut Vec<Move>,
+    ) -> anyhow::Result<i32> {
         self.search_info.nodes_searched += 1;
 
         // check move time expiry every 2048 nodes
@@ -267,17 +277,25 @@ impl Search {
                 continue;
             }
 
+            let mut current_pv = Vec::new();
+
             self.search_info.ply += 1;
 
-            let score = -self.quiescence_search(-beta, -alpha)?;
+            let score = -self.quiescence_search(-beta, -alpha, &mut current_pv)?;
 
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
 
-            alpha = alpha.max(score);
-
             if score >= beta {
-                break;
+                return Ok(beta);
+            }
+
+            if score > alpha {
+                alpha = score;
+
+                pv.clear();
+                pv.push(mv);
+                pv.append(&mut current_pv);
             }
         }
 
@@ -324,5 +342,16 @@ impl Search {
         } else {
             format!("cp {}", score)
         }
+    }
+
+    fn get_pv_string(pv: &[Move]) -> String {
+        let mut pv_string = String::new();
+
+        for mv in pv {
+            pv_string.push(' ');
+            pv_string.push_str(&mv.to_string());
+        }
+
+        pv_string.trim().into()
     }
 }
