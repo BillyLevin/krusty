@@ -159,6 +159,8 @@ impl Search {
         let mut best_score_from_node = -INFINITY;
         let mut best_move_from_node = Move::NULL_MOVE;
 
+        let mut pvs_enabled = false;
+
         self.score_moves(&mut move_list, transposition_move);
 
         for i in 0..move_list.length() {
@@ -174,7 +176,19 @@ impl Search {
             self.search_info.ply += 1;
             legal_move_count += 1;
 
-            let score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?;
+            let score = if pvs_enabled {
+                let mut pvs_score = -self.negamax(depth - 1, -alpha - 1, -alpha, pv)?;
+
+                if pvs_score > alpha && pvs_score < beta {
+                    // we assumed the move would be really bad, but it wasn't, so we have to do a
+                    // full-window search to verify the score
+                    pvs_score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?;
+                }
+
+                pvs_score
+            } else {
+                -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?
+            };
 
             self.board.unmake_move(mv)?;
             self.search_info.ply -= 1;
@@ -203,6 +217,8 @@ impl Search {
                 pv.clear();
                 pv.push(mv);
                 pv.append(&mut current_pv);
+
+                pvs_enabled = true;
             }
         }
 
