@@ -87,19 +87,19 @@ impl SearchTableEntry {
         if self.hash() == hash {
             best_move = self.best_move;
 
-            if self.depth == depth {
+            if self.depth >= depth {
                 let mut entry_score = self.score;
+
+                if entry_score > CHECKMATE_THRESHOLD {
+                    entry_score -= ply as i32;
+                }
+
+                if entry_score < -CHECKMATE_THRESHOLD {
+                    entry_score += ply as i32;
+                }
 
                 match self.flag {
                     SearchEntryFlag::Exact => {
-                        if entry_score > CHECKMATE_THRESHOLD {
-                            entry_score -= ply as i32;
-                        }
-
-                        if entry_score < -CHECKMATE_THRESHOLD {
-                            entry_score += ply as i32;
-                        }
-
                         score = Some(entry_score);
                     }
                     SearchEntryFlag::Alpha => {
