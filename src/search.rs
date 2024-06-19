@@ -242,6 +242,10 @@ impl Search {
             return Ok(0);
         }
 
+        if self.search_info.ply >= SearchDepth::MAX {
+            return Ok(evaluate(&self.board));
+        }
+
         let stand_pat = evaluate(&self.board);
 
         if stand_pat >= beta {
