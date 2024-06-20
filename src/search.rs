@@ -39,6 +39,10 @@ impl From<SearchDepth> for u8 {
 const INFINITY: i32 = 100_000;
 const CAPTURE_SCORE_OFFSET: i32 = 1000;
 const TT_SCORE_OFFSET: i32 = CAPTURE_SCORE_OFFSET + 10000;
+const FIRST_KILLER_SCORE: i32 = CAPTURE_SCORE_OFFSET - 1;
+const SECOND_KILLER_SCORE: i32 = CAPTURE_SCORE_OFFSET - 2;
+// history heuristic must always be lower in move ordering than killer heuristic
+const MAX_HISTORY_SCORE: i32 = SECOND_KILLER_SCORE - 1;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
@@ -56,6 +60,10 @@ pub struct Search {
 
     // quiet moves that caused a beta-cutoff, indexed by search ply
     pub killer_moves: [[Move; 2]; SearchDepth::MAX as usize + 1],
+
+    // counts the number of times a move caused a cutoff (with depth used as a multipler to
+    // prioritise higher depth cutoffs).
+    pub history: [[[u32; 64]; 64]; 2],
 }
 
 impl Default for Search {
@@ -70,6 +78,7 @@ impl Default for Search {
             timer: SearchTimer::default(),
             max_depth: SearchDepth::MAX,
             killer_moves: [[Move::NULL_MOVE; 2]; SearchDepth::MAX as usize + 1],
+            history: [[[0; 64]; 64]; 2],
         }
     }
 }
@@ -214,6 +223,7 @@ impl Search {
                 ));
 
                 self.store_killer_move(mv);
+                self.update_history_score(mv, depth);
                 return Ok(beta);
             }
 
@@ -328,25 +338,20 @@ impl Search {
         for i in 0..move_list.length() {
             let mv = move_list.get_mut(i);
 
-            let mut score = 0;
-
             let victim = self.board.get_piece(mv.to_square());
 
-            if *mv == transposition_move {
-                score = TT_SCORE_OFFSET;
+            let score = if *mv == transposition_move {
+                TT_SCORE_OFFSET
             } else if victim.kind != PieceKind::NoPiece {
                 let attacker = self.board.get_piece(mv.from_square());
-
-                score = CAPTURE_SCORE_OFFSET + (10 * victim.material_value())
-                    - attacker.material_value();
+                CAPTURE_SCORE_OFFSET + (10 * victim.material_value()) - attacker.material_value()
+            } else if *mv == self.get_killer_moves()[0] {
+                FIRST_KILLER_SCORE
+            } else if *mv == self.get_killer_moves()[1] {
+                SECOND_KILLER_SCORE
             } else {
-                let killers = self.get_killer_moves();
-                if *mv == killers[0] {
-                    score = CAPTURE_SCORE_OFFSET - 1;
-                } else if *mv == killers[1] {
-                    score = CAPTURE_SCORE_OFFSET - 2;
-                }
-            }
+                self.get_history_score(mv)
+            };
 
             assert!(score >= 0, "score must be above 0, got {}", score);
             assert!(
@@ -398,7 +403,42 @@ impl Search {
         }
     }
 
+    fn update_history_score(&mut self, mv: Move, depth: u8) {
+        if mv.kind() == MoveKind::Capture {
+            return;
+        }
+
+        let depth = depth as u32;
+
+        let history = self.get_history_mut();
+
+        history[mv.from_square().index()][mv.to_square().index()] += depth * depth;
+
+        // ensure the score is always less than that of the killer moves
+        if history[mv.from_square().index()][mv.to_square().index()] > MAX_HISTORY_SCORE as u32 {
+            #[allow(clippy::needless_range_loop)]
+            for from_square in 0..64 {
+                for to_square in 0..64 {
+                    history[from_square][to_square] /= 2;
+                }
+            }
+        }
+    }
+
     fn get_killer_moves(&self) -> &[Move] {
         &self.killer_moves[self.search_info.ply as usize]
+    }
+
+    fn get_history(&self) -> &[[u32; 64]; 64] {
+        &self.history[self.board.side_to_move().index()]
+    }
+
+    fn get_history_mut(&mut self) -> &mut [[u32; 64]; 64] {
+        &mut self.history[self.board.side_to_move().index()]
+    }
+
+    fn get_history_score(&self, mv: &Move) -> i32 {
+        let history = self.get_history();
+        history[mv.from_square().index()][mv.to_square().index()] as i32
     }
 }

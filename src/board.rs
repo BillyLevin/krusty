@@ -23,6 +23,12 @@ pub enum Side {
     Black,
 }
 
+impl Side {
+    pub fn index(&self) -> usize {
+        *self as usize
+    }
+}
+
 impl TryFrom<PieceColor> for Side {
     type Error = anyhow::Error;
 
