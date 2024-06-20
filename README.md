@@ -33,3 +33,6 @@ chess engine written in rust
 - [x] check extension
 - [x] draw detection (repetitions and 50-move rule)
 - [ ] null move pruning
+- [ ] killer move heuristic
+- [ ] history heuristic
+- [ ] aspiration window

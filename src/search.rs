@@ -3,7 +3,7 @@ use crate::{
     evaluate::{
         evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
     },
-    move_generator::{Move, MoveList},
+    move_generator::{Move, MoveKind, MoveList},
     square::PieceKind,
     time_management::SearchTimer,
     transposition_table::{SearchEntryFlag, SearchTableEntry, TranspositionTable},
@@ -53,6 +53,9 @@ pub struct Search {
     pub search_info: SearchInfo,
     pub timer: SearchTimer,
     pub max_depth: u8,
+
+    // quiet moves that caused a beta-cutoff, indexed by search ply
+    pub killer_moves: [[Move; 2]; SearchDepth::MAX as usize + 1],
 }
 
 impl Default for Search {
@@ -66,6 +69,7 @@ impl Default for Search {
             search_info: SearchInfo::default(),
             timer: SearchTimer::default(),
             max_depth: SearchDepth::MAX,
+            killer_moves: [[Move::NULL_MOVE; 2]; SearchDepth::MAX as usize + 1],
         }
     }
 }
@@ -208,6 +212,8 @@ impl Search {
                     SearchEntryFlag::Beta,
                     best_move_from_node,
                 ));
+
+                self.store_killer_move(mv);
                 return Ok(beta);
             }
 
@@ -333,6 +339,13 @@ impl Search {
 
                 score = CAPTURE_SCORE_OFFSET + (10 * victim.material_value())
                     - attacker.material_value();
+            } else {
+                let killers = self.get_killer_moves();
+                if *mv == killers[0] {
+                    score = CAPTURE_SCORE_OFFSET - 1;
+                } else if *mv == killers[1] {
+                    score = CAPTURE_SCORE_OFFSET - 2;
+                }
             }
 
             assert!(score >= 0, "score must be above 0, got {}", score);
@@ -369,5 +382,23 @@ impl Search {
         }
 
         pv_string.trim().into()
+    }
+
+    fn store_killer_move(&mut self, mv: Move) {
+        // quiet moves only
+        if mv.kind() == MoveKind::Capture {
+            return;
+        }
+
+        let ply = self.search_info.ply as usize;
+
+        if mv != self.killer_moves[ply][0] {
+            self.killer_moves[ply][1] = self.killer_moves[ply][0];
+            self.killer_moves[ply][0] = mv;
+        }
+    }
+
+    fn get_killer_moves(&self) -> &[Move] {
+        &self.killer_moves[self.search_info.ply as usize]
     }
 }
