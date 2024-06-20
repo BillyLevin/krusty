@@ -24,7 +24,7 @@ chess engine written in rust
 - [x] quiescence search
 - [ ] piece mobility
 - [ ] opening book
-- [ ] principal variation
+- [x] principal variation search
 - [x] make transposition table work with alpha-beta
 - [ ] research and experiment with fail-soft alpha-beta
 - [ ] endgame piece-square tables
