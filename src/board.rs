@@ -503,7 +503,7 @@ impl Board {
         self.halfmove_clock >= 100 || self.is_repeated_position()
     }
 
-    pub fn is_repeated_position(&self) -> bool {
+    fn is_repeated_position(&self) -> bool {
         // search backwards as it's more likely that a repeated position occurred recently
         let mut i = self.history.len() - 1;
 
@@ -523,6 +523,65 @@ impl Board {
         }
 
         false
+    }
+
+    pub fn has_insufficient_material(&self) -> bool {
+        // pawns
+        let white_pawns = self.piece_count(Piece::new(PieceColor::White, PieceKind::Pawn));
+        let black_pawns = self.piece_count(Piece::new(PieceColor::Black, PieceKind::Pawn));
+        let pawns = white_pawns + black_pawns;
+
+        // minor pieces
+        let white_knights = self.piece_count(Piece::new(PieceColor::White, PieceKind::Knight));
+        let black_knights = self.piece_count(Piece::new(PieceColor::Black, PieceKind::Knight));
+        let white_bishops = self.piece_count(Piece::new(PieceColor::White, PieceKind::Bishop));
+        let black_bishops = self.piece_count(Piece::new(PieceColor::Black, PieceKind::Bishop));
+        let minor_pieces = white_knights + black_knights + white_bishops + black_bishops;
+
+        // major pieces
+        let white_rooks = self.piece_count(Piece::new(PieceColor::White, PieceKind::Rook));
+        let black_rooks = self.piece_count(Piece::new(PieceColor::Black, PieceKind::Rook));
+        let white_queens = self.piece_count(Piece::new(PieceColor::White, PieceKind::Queen));
+        let black_queens = self.piece_count(Piece::new(PieceColor::Black, PieceKind::Queen));
+        let major_pieces = white_rooks + black_rooks + white_queens + black_queens;
+
+        // king vs king
+        if pawns == 0 && minor_pieces == 0 && major_pieces == 0 {
+            return true;
+        }
+
+        // king vs king + minor
+        if pawns == 0 && minor_pieces == 1 && major_pieces == 0 {
+            return true;
+        }
+
+        // king + bishop vs king + bishop (bishops on same color squares)
+        if pawns == 0
+            && minor_pieces == 2
+            && major_pieces == 0
+            && white_bishops == 1
+            && black_bishops == 1
+        {
+            let white_bishop_square = self
+                .get_piece_bb(Piece::new(PieceColor::White, PieceKind::Bishop))
+                .unwrap()
+                .get_lsb_square();
+
+            let black_bishop_square = self
+                .get_piece_bb(Piece::new(PieceColor::White, PieceKind::Bishop))
+                .unwrap()
+                .get_lsb_square();
+
+            if white_bishop_square.is_same_color(black_bishop_square) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn piece_count(&self, piece: Piece) -> u32 {
+        self.get_piece_bb(piece).unwrap().0.count_ones()
     }
 }
 

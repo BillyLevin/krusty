@@ -26,13 +26,17 @@ impl Bitboard {
     }
 
     pub fn pop_bit(&mut self) -> Square {
-        let square: Square = self.get_lsb().trailing_zeros().into();
+        let square = self.get_lsb_square();
         *self ^= square.bitboard();
         square
     }
 
-    fn get_lsb(self) -> u64 {
+    pub fn get_lsb(self) -> u64 {
         (self & (!self + 1)).into()
+    }
+
+    pub fn get_lsb_square(self) -> Square {
+        self.get_lsb().trailing_zeros().into()
     }
 }
 

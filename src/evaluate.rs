@@ -115,6 +115,10 @@ const FLIP_SQUARE : [usize; 64] = [
 ];
 
 pub fn evaluate(board: &Board) -> i32 {
+    if board.has_insufficient_material() {
+        return 0;
+    }
+
     let mut white_score = 0;
     let mut black_score = 0;
 

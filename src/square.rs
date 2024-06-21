@@ -63,6 +63,29 @@ define_squares! (
     A8, B8, C8, D8, E8, F8, G8, H8 
 );
 
+const fn square_color_mask() -> u64 {
+    let mut mask = 0;
+
+    let mut rank = 0;
+    let mut file = 0;
+
+    while rank < 8 {
+        while file < 8 {
+            if (file + rank) % 2 == 0 {
+                mask |= 1u64 << (rank * 8 + file);
+            }
+            file += 1;
+        }
+
+        file = 0;
+        rank += 1;
+    }
+
+    mask
+}
+
+pub const DARK_SQUARE_MASK: u64 = square_color_mask();
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Rank {
     First,
@@ -199,6 +222,10 @@ impl Square {
         let index2 = other_square.index() as i32;
 
         (index1).abs_diff(index2)
+    }
+
+    pub fn is_same_color(&self, other_square: Square) -> bool {
+        self.bitboard().0 & DARK_SQUARE_MASK == other_square.bitboard().0 & DARK_SQUARE_MASK
     }
 }
 
