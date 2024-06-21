@@ -41,8 +41,9 @@ const CAPTURE_SCORE_OFFSET: i32 = 1000;
 const TT_SCORE_OFFSET: i32 = CAPTURE_SCORE_OFFSET + 10000;
 const FIRST_KILLER_SCORE: i32 = CAPTURE_SCORE_OFFSET - 1;
 const SECOND_KILLER_SCORE: i32 = CAPTURE_SCORE_OFFSET - 2;
+const COUNTER_MOVE_BONUS: i32 = 1;
 // history heuristic must always be lower in move ordering than killer heuristic
-const MAX_HISTORY_SCORE: i32 = SECOND_KILLER_SCORE - 1;
+const MAX_HISTORY_SCORE: i32 = SECOND_KILLER_SCORE - COUNTER_MOVE_BONUS - 1;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
@@ -64,6 +65,10 @@ pub struct Search {
     // counts the number of times a move caused a cutoff (with depth used as a multipler to
     // prioritise higher depth cutoffs).
     pub history: [[[u32; 64]; 64]; 2],
+
+    // keeps track of any cutoffs caused by a particular from-to move, the idea being that it might
+    // also be a good counter move to the same from-to move in other positions
+    pub counter_moves: [[[Move; 64]; 64]; 2],
 }
 
 impl Default for Search {
@@ -79,6 +84,7 @@ impl Default for Search {
             max_depth: SearchDepth::MAX,
             killer_moves: [[Move::NULL_MOVE; 2]; SearchDepth::MAX as usize + 1],
             history: [[[0; 64]; 64]; 2],
+            counter_moves: [[[Move::NULL_MOVE; 64]; 64]; 2],
         }
     }
 }
@@ -98,7 +104,7 @@ impl Search {
         let mut pv = Vec::new();
 
         for depth in 1..=max_depth {
-            let score = self.negamax(depth, -INFINITY, INFINITY, &mut pv)?;
+            let score = self.negamax(depth, -INFINITY, INFINITY, &mut pv, Move::NULL_MOVE)?;
 
             if self.timer.is_stopped() {
                 break;
@@ -127,6 +133,7 @@ impl Search {
         alpha: i32,
         beta: i32,
         pv: &mut Vec<Move>,
+        previous_move: Move,
     ) -> anyhow::Result<i32> {
         // search a bit further if in check
         if self.board.is_in_check(self.board.side_to_move()) {
@@ -174,7 +181,7 @@ impl Search {
 
         let mut pvs_enabled = false;
 
-        self.score_moves(&mut move_list, transposition_move);
+        self.score_moves(&mut move_list, transposition_move, previous_move);
 
         for i in 0..move_list.length() {
             let mv = move_list.pick_ordered_move(i);
@@ -190,17 +197,17 @@ impl Search {
             legal_move_count += 1;
 
             let score = if pvs_enabled {
-                let mut pvs_score = -self.negamax(depth - 1, -alpha - 1, -alpha, pv)?;
+                let mut pvs_score = -self.negamax(depth - 1, -alpha - 1, -alpha, pv, mv)?;
 
                 if pvs_score > alpha && pvs_score < beta {
                     // we assumed the move would be really bad, but it wasn't, so we have to do a
                     // full-window search to verify the score
-                    pvs_score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?;
+                    pvs_score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv)?;
                 }
 
                 pvs_score
             } else {
-                -self.negamax(depth - 1, -beta, -alpha, &mut current_pv)?
+                -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv)?
             };
 
             self.board.unmake_move(mv)?;
@@ -224,6 +231,7 @@ impl Search {
 
                 self.store_killer_move(mv);
                 self.update_history_score(mv, depth);
+                self.store_counter_move(previous_move, mv);
                 return Ok(beta);
             }
 
@@ -299,7 +307,7 @@ impl Search {
         let mut move_list = MoveList::default();
         self.board.generate_all_captures(&mut move_list)?;
 
-        self.score_moves(&mut move_list, Move::NULL_MOVE);
+        self.score_moves(&mut move_list, Move::NULL_MOVE, Move::NULL_MOVE);
 
         for i in 0..move_list.length() {
             let mv = move_list.pick_ordered_move(i);
@@ -334,7 +342,7 @@ impl Search {
         Ok(alpha)
     }
 
-    fn score_moves(&self, move_list: &mut MoveList, transposition_move: Move) {
+    fn score_moves(&self, move_list: &mut MoveList, transposition_move: Move, previous_move: Move) {
         for i in 0..move_list.length() {
             let mv = move_list.get_mut(i);
 
@@ -350,7 +358,7 @@ impl Search {
             } else if *mv == self.get_killer_moves()[1] {
                 SECOND_KILLER_SCORE
             } else {
-                self.get_history_score(mv)
+                self.get_history_score(mv) + self.get_counter_move_bonus(previous_move, *mv)
             };
 
             assert!(score >= 0, "score must be above 0, got {}", score);
@@ -425,6 +433,17 @@ impl Search {
         }
     }
 
+    fn store_counter_move(&mut self, previous_move: Move, current_move: Move) {
+        if current_move.kind() == MoveKind::Capture {
+            return;
+        }
+
+        let counters = self.get_counter_moves_mut();
+
+        counters[previous_move.from_square().index()][previous_move.to_square().index()] =
+            current_move;
+    }
+
     fn get_killer_moves(&self) -> &[Move] {
         &self.killer_moves[self.search_info.ply as usize]
     }
@@ -440,5 +459,23 @@ impl Search {
     fn get_history_score(&self, mv: &Move) -> i32 {
         let history = self.get_history();
         history[mv.from_square().index()][mv.to_square().index()] as i32
+    }
+
+    fn get_counter_moves(&self) -> &[[Move; 64]; 64] {
+        &self.counter_moves[self.board.side_to_move().index()]
+    }
+
+    fn get_counter_moves_mut(&mut self) -> &mut [[Move; 64]; 64] {
+        &mut self.counter_moves[self.board.side_to_move().index()]
+    }
+
+    fn get_counter_move_bonus(&self, previous_move: Move, mv: Move) -> i32 {
+        let counter = self.get_counter_moves();
+
+        if counter[previous_move.from_square().index()][previous_move.to_square().index()] == mv {
+            COUNTER_MOVE_BONUS
+        } else {
+            0
+        }
     }
 }
