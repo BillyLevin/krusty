@@ -505,10 +505,21 @@ impl Board {
 
     pub fn is_repeated_position(&self) -> bool {
         // search backwards as it's more likely that a repeated position occurred recently
-        for i in (self.history.len() - 1)..=0 {
-            if self.history[i].hash == self.hash {
+        let mut i = self.history.len() - 1;
+
+        while i > 0 {
+            let history_item = &self.history[i];
+            if history_item.hash == self.hash {
                 return true;
             }
+
+            // if the halfmove clock was reset, then the position can't have been repeated as the move
+            // that caused the reset was irreversible
+            if history_item.halfmove_clock == 0 {
+                break;
+            }
+
+            i -= 1;
         }
 
         false

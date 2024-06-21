@@ -165,7 +165,7 @@ impl Search {
             return Ok(0);
         }
 
-        if self.board.is_draw() {
+        if self.search_info.ply != 0 && self.board.is_draw() {
             return Ok(0);
         }
 
@@ -285,10 +285,6 @@ impl Search {
         }
 
         if self.timer.is_stopped() {
-            return Ok(0);
-        }
-
-        if self.board.is_draw() {
             return Ok(0);
         }
 
