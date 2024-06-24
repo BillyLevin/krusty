@@ -194,6 +194,9 @@ const ROOK_PHASE: i32 = 2;
 const QUEEN_PHASE: i32 = 4;
 const TOTAL_PHASE: i32 = KNIGHT_PHASE * 4 + BISHOP_PHASE * 4 + ROOK_PHASE * 4 + QUEEN_PHASE * 2;
 
+const BISHOP_PAIR_MIDDLE_GAME_BONUS: i32 = 25;
+const BISHOP_PAIR_END_GAME_BONUS: i32 = 50;
+
 impl Board {
     pub fn evaluate(&self) -> i32 {
         if self.has_insufficient_material() {
@@ -228,6 +231,16 @@ impl Board {
                 }
                 PieceColor::None => panic!("found a piece with no color"),
             };
+        }
+
+        if self.piece_count(Piece::new(PieceColor::White, PieceKind::Bishop)) >= 2 {
+            white_middle_game_score += BISHOP_PAIR_MIDDLE_GAME_BONUS;
+            white_end_game_score += BISHOP_PAIR_END_GAME_BONUS;
+        }
+
+        if self.piece_count(Piece::new(PieceColor::Black, PieceKind::Bishop)) >= 2 {
+            black_middle_game_score += BISHOP_PAIR_MIDDLE_GAME_BONUS;
+            black_end_game_score += BISHOP_PAIR_END_GAME_BONUS;
         }
 
         let phase = self.get_game_phase();
