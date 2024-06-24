@@ -1,8 +1,6 @@
 use crate::{
     board::{Board, START_POSITION_FEN},
-    evaluate::{
-        evaluate, BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE,
-    },
+    evaluate::{BISHOP_VALUE, KING_VALUE, KNIGHT_VALUE, PAWN_VALUE, QUEEN_VALUE, ROOK_VALUE},
     move_generator::{Move, MoveKind, MoveList},
     square::PieceKind,
     time_management::SearchTimer,
@@ -289,10 +287,10 @@ impl Search {
         }
 
         if self.search_info.ply >= SearchDepth::MAX {
-            return Ok(evaluate(&self.board));
+            return Ok(self.board.evaluate());
         }
 
-        let stand_pat = evaluate(&self.board);
+        let stand_pat = self.board.evaluate();
 
         if stand_pat >= beta {
             return Ok(beta);

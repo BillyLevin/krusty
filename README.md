@@ -27,8 +27,8 @@ chess engine written in rust
 - [x] principal variation search
 - [x] make transposition table work with alpha-beta
 - [ ] research and experiment with fail-soft alpha-beta
-- [ ] endgame piece-square tables
-- [ ] try out tapered evaluation
+- [x] endgame piece-square tables
+- [x] try out tapered evaluation
 - [ ] tuning
 - [x] check extension
 - [x] draw detection (repetitions and 50-move rule)

@@ -580,7 +580,7 @@ impl Board {
         false
     }
 
-    fn piece_count(&self, piece: Piece) -> u32 {
+    pub fn piece_count(&self, piece: Piece) -> u32 {
         self.get_piece_bb(piece).unwrap().0.count_ones()
     }
 }

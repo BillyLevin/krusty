@@ -4,7 +4,6 @@ use colored::Colorize;
 
 use crate::{
     board::START_POSITION_FEN,
-    evaluate::evaluate,
     perft::{perft, run_perft_tests},
     search::Search,
     transposition_table::{PerftTableEntry, TranspositionTable},
@@ -164,7 +163,7 @@ impl Cli {
     }
 
     fn handle_eval_command(&self) {
-        println!("{}", evaluate(&self.search.board))
+        println!("{}", self.search.board.evaluate())
     }
 
     fn handle_search_command(&mut self, args: &str) {
