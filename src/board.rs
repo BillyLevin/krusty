@@ -115,7 +115,7 @@ pub struct Board {
 
     history: Vec<HistoryItem>,
 
-    move_generator: MoveGenerator,
+    pub move_generator: MoveGenerator,
 
     hasher: ZobristHasher,
     hash: u64,

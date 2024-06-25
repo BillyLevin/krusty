@@ -22,7 +22,7 @@ chess engine written in rust
 - [x] move ordering
 - [x] piece-square tables
 - [x] quiescence search
-- [ ] piece mobility
+- [x] piece mobility
 - [ ] opening book
 - [x] principal variation search
 - [x] make transposition table work with alpha-beta
@@ -36,3 +36,4 @@ chess engine written in rust
 - [x] killer move heuristic
 - [x] history heuristic
 - [ ] aspiration window
+- [ ] weighted mobility based on piece type and game phase

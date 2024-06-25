@@ -38,6 +38,10 @@ impl Bitboard {
     pub fn get_lsb_square(self) -> Square {
         self.get_lsb().trailing_zeros().into()
     }
+
+    pub fn count_ones(&self) -> u32 {
+        self.0.count_ones()
+    }
 }
 
 impl Display for Bitboard {

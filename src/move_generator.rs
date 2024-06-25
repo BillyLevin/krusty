@@ -658,7 +658,7 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.rook_attacks[magic.get_magic_index(occupancies)];
+            let possible_attacks = self.get_rook_attacks(magic.get_magic_index(occupancies));
 
             let mut rook_moves = possible_attacks & !current_side_occupancy;
 
@@ -695,7 +695,7 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.bishop_attacks[magic.get_magic_index(occupancies)];
+            let possible_attacks = self.get_bishop_attacks(magic.get_magic_index(occupancies));
 
             let mut bishop_moves = possible_attacks & !current_side_occupancy;
 
@@ -733,8 +733,9 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.bishop_attacks[bishop_magic.get_magic_index(occupancies)]
-                | self.rook_attacks[rook_magic.get_magic_index(occupancies)];
+            let possible_attacks = self
+                .get_bishop_attacks(bishop_magic.get_magic_index(occupancies))
+                | self.get_rook_attacks(rook_magic.get_magic_index(occupancies));
 
             let mut queen_moves = possible_attacks & !current_side_occupancy;
 
@@ -899,7 +900,7 @@ impl MoveGenerator {
             .unwrap();
 
         let bishop_magic = BISHOP_MAGICS[square.index()];
-        let bishop_attacks = self.bishop_attacks[bishop_magic.get_magic_index(occupancies)];
+        let bishop_attacks = self.get_bishop_attacks(bishop_magic.get_magic_index(occupancies));
 
         if bishop_attacks & bishops != EMPTY_BB {
             return true;
@@ -910,7 +911,7 @@ impl MoveGenerator {
             .unwrap();
 
         let rook_magic = ROOK_MAGICS[square.index()];
-        let rook_attacks = self.rook_attacks[rook_magic.get_magic_index(occupancies)];
+        let rook_attacks = self.get_rook_attacks(rook_magic.get_magic_index(occupancies));
 
         if rook_attacks & rooks != EMPTY_BB {
             return true;
@@ -1088,7 +1089,7 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.rook_attacks[magic.get_magic_index(occupancies)];
+            let possible_attacks = self.get_rook_attacks(magic.get_magic_index(occupancies));
 
             let mut rook_moves = possible_attacks & !current_side_occupancy;
 
@@ -1130,7 +1131,7 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.bishop_attacks[magic.get_magic_index(occupancies)];
+            let possible_attacks = self.get_bishop_attacks(magic.get_magic_index(occupancies));
 
             let mut bishop_moves = possible_attacks & !current_side_occupancy;
 
@@ -1173,8 +1174,9 @@ impl MoveGenerator {
 
             let occupancies = current_side_occupancy | enemy_occupancy;
 
-            let possible_attacks = self.bishop_attacks[bishop_magic.get_magic_index(occupancies)]
-                | self.rook_attacks[rook_magic.get_magic_index(occupancies)];
+            let possible_attacks = self
+                .get_bishop_attacks(bishop_magic.get_magic_index(occupancies))
+                | self.get_rook_attacks(rook_magic.get_magic_index(occupancies));
 
             let mut queen_moves = possible_attacks & !current_side_occupancy;
 
@@ -1194,6 +1196,14 @@ impl MoveGenerator {
             }
         }
         Ok(())
+    }
+
+    pub fn get_bishop_attacks(&self, magic_index: usize) -> Bitboard {
+        self.bishop_attacks[magic_index]
+    }
+
+    pub fn get_rook_attacks(&self, magic_index: usize) -> Bitboard {
+        self.rook_attacks[magic_index]
     }
 }
 

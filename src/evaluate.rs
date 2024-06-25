@@ -1,6 +1,8 @@
 use crate::{
     board::{Board, Side},
-    square::{Piece, PieceColor, PieceKind},
+    magics::{BISHOP_MAGICS, ROOK_MAGICS},
+    move_generator::KNIGHT_ATTACKS,
+    square::{Piece, PieceColor, PieceKind, Square},
 };
 
 pub const PAWN_VALUE: i32 = 100;
@@ -220,12 +222,14 @@ impl Board {
             match piece.color {
                 PieceColor::White => {
                     white_score += piece.material_value();
+                    white_score += self.get_piece_mobility(*piece, square_index.into());
                     white_middle_game_score +=
                         piece.middle_game_pst_value(FLIP_SQUARE[square_index]);
                     white_end_game_score += piece.end_game_pst_value(FLIP_SQUARE[square_index]);
                 }
                 PieceColor::Black => {
                     black_score += piece.material_value();
+                    black_score += self.get_piece_mobility(*piece, square_index.into());
                     black_middle_game_score += piece.middle_game_pst_value(square_index);
                     black_end_game_score += piece.end_game_pst_value(square_index);
                 }
@@ -287,5 +291,88 @@ impl Board {
         phase = (phase * 256 + (TOTAL_PHASE / 2)) / TOTAL_PHASE;
 
         phase
+    }
+
+    fn get_piece_mobility(&self, piece: Piece, square: Square) -> i32 {
+        let side = piece.color.try_into().unwrap();
+
+        // this mobility isn't exact because the move generator generates pseudo-legal moves, but
+        // it should be a good enough approximation. probably not worth doing the computation to
+        // determine if a move is legal, but should experiment in future
+        match piece.kind {
+            PieceKind::Knight => self.get_knight_mobility(square, side),
+            PieceKind::Bishop => self.get_bishop_mobility(square, side),
+            PieceKind::Rook => self.get_rook_mobility(square, side),
+            PieceKind::Queen => self.get_queen_mobility(square, side),
+            _ => 0,
+        }
+    }
+
+    fn get_knight_mobility(&self, square: Square, side: Side) -> i32 {
+        let current_side_occupancy = self.occupancy(side);
+
+        let possible_moves = KNIGHT_ATTACKS[square.index()];
+
+        let moves = possible_moves & !current_side_occupancy;
+
+        moves.count_ones() as i32
+    }
+
+    fn get_bishop_mobility(&self, square: Square, side: Side) -> i32 {
+        let current_side_occupancy = self.occupancy(side);
+        let enemy_occupancy = self.occupancy(!side);
+
+        let magic = BISHOP_MAGICS[square.index()];
+
+        let occupancies = current_side_occupancy | enemy_occupancy;
+
+        let possible_moves = self
+            .move_generator
+            .get_bishop_attacks(magic.get_magic_index(occupancies));
+
+        let moves = possible_moves & !current_side_occupancy;
+
+        moves.count_ones() as i32
+    }
+
+    fn get_rook_mobility(&self, square: Square, side: Side) -> i32 {
+        let current_side_occupancy = self.occupancy(side);
+        let enemy_occupancy = self.occupancy(!side);
+
+        let magic = ROOK_MAGICS[square.index()];
+
+        let occupancies = current_side_occupancy | enemy_occupancy;
+
+        let possible_moves = self
+            .move_generator
+            .get_rook_attacks(magic.get_magic_index(occupancies));
+
+        let moves = possible_moves & !current_side_occupancy;
+
+        moves.count_ones() as i32
+    }
+
+    fn get_queen_mobility(&self, square: Square, side: Side) -> i32 {
+        let current_side_occupancy = self.occupancy(side);
+        let enemy_occupancy = self.occupancy(!side);
+
+        let bishop_magic = BISHOP_MAGICS[square.index()];
+        let rook_magic = ROOK_MAGICS[square.index()];
+
+        let occupancies = current_side_occupancy | enemy_occupancy;
+
+        let bishop_moves = self
+            .move_generator
+            .get_bishop_attacks(bishop_magic.get_magic_index(occupancies));
+
+        let rook_moves = self
+            .move_generator
+            .get_rook_attacks(rook_magic.get_magic_index(occupancies));
+
+        let possible_moves = bishop_moves | rook_moves;
+
+        let moves = possible_moves & !current_side_occupancy;
+
+        moves.count_ones() as i32
     }
 }
