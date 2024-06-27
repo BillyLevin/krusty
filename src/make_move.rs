@@ -236,6 +236,39 @@ impl Board {
         Ok(())
     }
 
+    pub fn make_null_move(&mut self) {
+        let old_hash = self.hash();
+
+        let history_item = HistoryItem {
+            castling_rights: self.castling_rights(),
+            en_passant_square: self.en_passant_square(),
+            halfmove_clock: self.halfmove_clock(),
+            moved_piece: Piece::default(),
+            captured_piece: Piece::default(),
+            hash: old_hash,
+        };
+
+        self.reset_clock();
+
+        self.hash_en_passant_square();
+        self.set_en_passant_square(Square::None);
+
+        self.switch_side_and_hash();
+
+        self.push_history(history_item);
+    }
+
+    pub fn unmake_null_move(&mut self) {
+        let history_item: HistoryItem = self.pop_history();
+
+        self.set_castling_rights(history_item.castling_rights);
+        self.set_en_passant_square(history_item.en_passant_square);
+        self.set_halfmove_clock(history_item.halfmove_clock);
+        self.set_hash(history_item.hash);
+
+        self.switch_side();
+    }
+
     pub fn get_move_metadata(&self, move_str: &str) -> anyhow::Result<MoveMetadata> {
         if move_str.len() < 4 {
             bail!("Move string `{}` is invalid", move_str)
