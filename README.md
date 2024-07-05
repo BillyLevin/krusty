@@ -32,7 +32,7 @@ chess engine written in rust
 - [ ] tuning
 - [x] check extension
 - [x] draw detection (repetitions and 50-move rule)
-- [ ] null move pruning
+- [x] null move pruning
 - [x] killer move heuristic
 - [x] history heuristic
 - [ ] aspiration window
