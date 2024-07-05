@@ -43,6 +43,8 @@ const COUNTER_MOVE_BONUS: i32 = 1;
 // history heuristic must always be lower in move ordering than killer heuristic
 const MAX_HISTORY_SCORE: i32 = SECOND_KILLER_SCORE - COUNTER_MOVE_BONUS - 1;
 
+const DEPTH_REDUCTION_FACTOR: u8 = 2;
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct SearchInfo {
     pub ply: u8,
@@ -102,7 +104,7 @@ impl Search {
         let mut pv = Vec::new();
 
         for depth in 1..=max_depth {
-            let score = self.negamax(depth, -INFINITY, INFINITY, &mut pv, Move::NULL_MOVE)?;
+            let score = self.negamax(depth, -INFINITY, INFINITY, &mut pv, Move::NULL_MOVE, true)?;
 
             if self.timer.is_stopped() {
                 break;
@@ -132,6 +134,7 @@ impl Search {
         beta: i32,
         pv: &mut Vec<Move>,
         previous_move: Move,
+        do_null_search: bool,
     ) -> anyhow::Result<i32> {
         // search a bit further if in check
         if self.board.is_in_check(self.board.side_to_move()) {
@@ -140,6 +143,10 @@ impl Search {
 
         if depth == 0 {
             return self.quiescence_search(alpha, beta, pv);
+        }
+
+        if self.search_info.ply >= SearchDepth::MAX {
+            return Ok(self.board.evaluate());
         }
 
         let table_entry = self.transposition_table.probe(self.board.hash());
@@ -177,6 +184,28 @@ impl Search {
         let mut best_score_from_node = -INFINITY;
         let mut best_move_from_node = Move::NULL_MOVE;
 
+        if do_null_search && depth >= DEPTH_REDUCTION_FACTOR && self.can_do_null_search() {
+            let mut current_pv = Vec::new();
+
+            let reduced_depth = depth.saturating_sub(DEPTH_REDUCTION_FACTOR + 1);
+
+            self.board.make_null_move();
+            let score = -self.negamax(
+                reduced_depth,
+                -beta,
+                -beta + 1,
+                &mut current_pv,
+                Move::NULL_MOVE,
+                false,
+            )?;
+            self.board.unmake_null_move();
+            current_pv.clear();
+
+            if score >= beta {
+                return Ok(score);
+            }
+        }
+
         let mut pvs_enabled = false;
 
         self.score_moves(&mut move_list, transposition_move, previous_move);
@@ -195,17 +224,18 @@ impl Search {
             legal_move_count += 1;
 
             let score = if pvs_enabled {
-                let mut pvs_score = -self.negamax(depth - 1, -alpha - 1, -alpha, pv, mv)?;
+                let mut pvs_score = -self.negamax(depth - 1, -alpha - 1, -alpha, pv, mv, true)?;
 
                 if pvs_score > alpha && pvs_score < beta {
                     // we assumed the move would be really bad, but it wasn't, so we have to do a
                     // full-window search to verify the score
-                    pvs_score = -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv)?;
+                    pvs_score =
+                        -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv, true)?;
                 }
 
                 pvs_score
             } else {
-                -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv)?
+                -self.negamax(depth - 1, -beta, -alpha, &mut current_pv, mv, true)?
             };
 
             self.board.unmake_move(mv)?;
@@ -471,5 +501,9 @@ impl Search {
         } else {
             0
         }
+    }
+
+    fn can_do_null_search(&self) -> bool {
+        !self.board.is_in_check(self.board.side_to_move()) && self.board.has_major_or_minor_piece()
     }
 }

@@ -583,6 +583,18 @@ impl Board {
     pub fn piece_count(&self, piece: Piece) -> u32 {
         self.get_piece_bb(piece).unwrap().0.count_ones()
     }
+
+    pub fn has_major_or_minor_piece(&self) -> bool {
+        self.piece_count(Piece::new(PieceColor::White, PieceKind::Knight))
+            + self.piece_count(Piece::new(PieceColor::Black, PieceKind::Knight))
+            + self.piece_count(Piece::new(PieceColor::White, PieceKind::Bishop))
+            + self.piece_count(Piece::new(PieceColor::Black, PieceKind::Bishop))
+            + self.piece_count(Piece::new(PieceColor::White, PieceKind::Rook))
+            + self.piece_count(Piece::new(PieceColor::Black, PieceKind::Rook))
+            + self.piece_count(Piece::new(PieceColor::White, PieceKind::Queen))
+            + self.piece_count(Piece::new(PieceColor::Black, PieceKind::Queen))
+            > 0
+    }
 }
 
 fn print_board(board: &Board, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
