@@ -57,7 +57,7 @@ impl From<u32> for MoveFlag {
 // 3 bits: move flag
 // = 17 bits to represent the move
 // the remaining 15 bits provide the move with a score for use in sorting
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default)]
 pub struct Move(u32);
 
 impl Move {
@@ -66,7 +66,7 @@ impl Move {
     const SQUARE_MASK: u32 = 0b111111;
     const MOVE_KIND_MASK: u32 = 0b11;
     const MOVE_FLAG_MASK: u32 = 0b111;
-    const MOVE_SCORE_MASK: u32 = 0b111111111111111;
+    const MOVE_SCORE_MASK: u32 = 0xfffe0000;
 
     pub fn new(from: Square, to: Square, kind: MoveKind, flag: MoveFlag) -> Self {
         let from = from as u32;
@@ -94,11 +94,11 @@ impl Move {
     }
 
     pub fn score(&self) -> u32 {
-        (self.0 >> 17) & Self::MOVE_SCORE_MASK
+        (self.0 & Self::MOVE_SCORE_MASK) >> 17
     }
 
     pub fn set_score(&mut self, score: u32) {
-        self.0 |= score << 17 & !Self::MOVE_SCORE_MASK
+        self.0 |= score << 17 & Self::MOVE_SCORE_MASK
     }
 
     pub fn is_null(&self) -> bool {
@@ -126,6 +126,14 @@ impl Display for Move {
         write!(f, "{}", promotion)
     }
 }
+
+impl PartialEq for Move {
+    fn eq(&self, other: &Self) -> bool {
+        (self.0 & !Self::MOVE_SCORE_MASK) == (other.0 & !Self::MOVE_SCORE_MASK)
+    }
+}
+
+impl Eq for Move {}
 
 #[derive(Clone)]
 pub struct MoveList {
